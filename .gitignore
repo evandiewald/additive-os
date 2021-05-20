@@ -1,0 +1,8 @@
+ipfs-upload/__pycache__/
+ipfs-upload/.idea/
+ipfs-upload/venv/
+ipfs-upload/py-ipfs-http-client/
+
+api/node_modules/
+
+frontend/

@@ -1,0 +1,6 @@
+TO START API: 
+npm run start:dev
+
+curl --request GET --url http://localhost:3000/v1/projects/collection/0x4263f3e1effb2e48 --header 'Content-Type: application/json'
+
+curl --request POST --url http://localhost:3000/v1/projects/update --header 'Content-Type: application/json' --data '{"updateId": 1,"newMetadata": {"name": "evan"}'

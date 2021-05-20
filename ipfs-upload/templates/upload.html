@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<form action={{ action_url }} enctype="multipart/form-data" method="post">
+    <h1>Project ID: {{ metadata['project_id'] }}</h1>
+    <label for="project_name">Title: </label>
+    <input name="project_name" id="project_name" type="text" value={{ metadata['project_name'] }}>
+    <label for="user_list">User List: </label>
+    <input name="user_list" id="user_list" type="text" value={{ metadata['user_list'] }}>
+    <label for="data_type">Choose a data type:</label>
+    <div id="data_type">
+        <input type="radio" id="spreadsheet"
+         name="data_type" value="spreadsheet">
+        <label for="spreadsheet">Spreadsheet</label>
+
+        <input type="radio" id="images"
+         name="data_type" value="images">
+        <label for="images">Images</label>
+
+        <input type="radio" id="pyrometry"
+         name="data_type" value="pyrometry">
+        <label for="pyrometry">Pyrometry</label>
+
+        <input type="radio" id="acoustics"
+         name="data_type" value="acoustics">
+        <label for="acoustics">acoustics</label>
+
+        <input type="radio" id="micrographs"
+         name="data_type" value="micrographs">
+        <label for="micrographs">micrographs</label>
+
+        <input type="radio" id="other"
+         name="data_type" value="other">
+        <label for="other">other</label>
+
+        <input type="radio" id="none"
+         name="data_type" value="none" hidden=True checked>
+    </div>
+    <label for="files">Select a file:</label>
+    <input id="files" name="files" type="file">
+    <input type="submit">
+    <div>
+        <ul>
+            {% if metadata['files'] %}
+            {% for file in metadata['files'] %}
+            <li>{{ file }}</li>
+            {% endfor %}
+            {% endif %}
+        </ul>
+    </div>
+</form>
+
+{% endblock %}

@@ -1,0 +1,19 @@
+{
+	"contracts": {
+		"AMProject": "./cadence/contracts/AMProject.cdc"
+	},
+	"networks": {
+		"testnet": "access.devnet.nodes.onflow.org:9000"
+	},
+	"accounts": {
+		"testnet-account": {
+			"address": "4263f3e1effb2e48",
+			"keys": "6acbfd94278b0c7fa7e0f8faec9abd76e0afb26012e5da6966291a4b239402e9"
+		}
+	},
+	"deployments": {
+		"testnet": {
+			"testnet-account": ["AMProject"]
+		}
+	}
+}

@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<form action="/token/" enctype="multipart/form-data" method="post">
+    <label for="username">Username (email address)</label>
+    <input id="username" name="username" type="text">
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password">
+    <input type="submit">
+</form>
+{% endblock %}
