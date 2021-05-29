@@ -3,6 +3,7 @@ import boto3
 from botocore.exceptions import ClientError
 from cryptography.fernet import Fernet
 import tempfile
+import hashlib
 
 import config
 import logging
@@ -72,28 +73,15 @@ def encrypt_file(filename, cmk_id):
     # Encrypt the file
     f = Fernet(data_key_plaintext)
     file_contents_encrypted = f.encrypt(filename.read())
-
-    # Write the encrypted data key and encrypted file contents together
-    # try:
-    #     with open(filename + '.encrypted', 'wb') as file_encrypted:
-    #         file_encrypted.write(len(data_key_encrypted).to_bytes(NUM_BYTES_FOR_LEN,
-    #                                                               byteorder='big'))
-    #         file_encrypted.write(data_key_encrypted)
-    #         file_encrypted.write(file_contents_encrypted)
-    # except IOError as e:
-    #     logging.error(e)
-    #     return False
+    filename.seek(0)
+    file_hash = hashlib.md5(filename.read()).hexdigest()
     with open(tempfile.gettempdir() + '/encrypted_file', 'wb') as f:
         f.write(len(data_key_encrypted).to_bytes(NUM_BYTES_FOR_LEN, byteorder='big'))
         f.write(data_key_encrypted)
         f.write(file_contents_encrypted)
-    # print('Final file: ', filename.open().read())
-    # For the highest security, the data_key_plaintext value should be wiped
-    # from memory. Unfortunately, this is not possible in Python. However,
-    # storing the value in a local variable makes it available for garbage
-    # collection.
 
-    return True
+
+    return file_hash
 
 
 def decrypt_data_key(data_key_encrypted):

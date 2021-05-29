@@ -2,53 +2,117 @@
 
 {% block content %}
 
-<form action={{ action_url }} enctype="multipart/form-data" method="post">
-    <h1>Project ID: {{ metadata['project_id'] }}</h1>
-    <label for="project_name">Title: </label>
-    <input name="project_name" id="project_name" type="text" value={{ metadata['project_name'] }}>
-    <label for="user_list">User List: </label>
-    <input name="user_list" id="user_list" type="text" value={{ metadata['user_list'] }}>
-    <label for="data_type">Choose a data type:</label>
-    <div id="data_type">
-        <input type="radio" id="spreadsheet"
-         name="data_type" value="spreadsheet">
-        <label for="spreadsheet">Spreadsheet</label>
-
-        <input type="radio" id="images"
-         name="data_type" value="images">
-        <label for="images">Images</label>
-
-        <input type="radio" id="pyrometry"
-         name="data_type" value="pyrometry">
-        <label for="pyrometry">Pyrometry</label>
-
-        <input type="radio" id="acoustics"
-         name="data_type" value="acoustics">
-        <label for="acoustics">acoustics</label>
-
-        <input type="radio" id="micrographs"
-         name="data_type" value="micrographs">
-        <label for="micrographs">micrographs</label>
-
-        <input type="radio" id="other"
-         name="data_type" value="other">
-        <label for="other">other</label>
-
-        <input type="radio" id="none"
-         name="data_type" value="none" hidden=True checked>
+<form action={{ metadata_update_url }} enctype="multipart/form-data" method="post">
+    <h2><span class="badge bg-secondary mt-5"><img src="/static/folder.svg" height="24"> {{ metadata['project_name'] }}</span></h2>
+<!--    <h3>Project Metadata</h3>-->
+    <div class="mb-3 input-group">
+      <span class="input-group-text">Project Name</span>
+      <input type="text" name="project_name" class="form-control" id="project_name" value="{{ metadata['project_name'] }}">
     </div>
-    <label for="files">Select a file:</label>
-    <input id="files" name="files" type="file">
-    <input type="submit">
+<!--    <label for="project_name">Title: </label>-->
+<!--    <input name="project_name" id="project_name" type="text" value="{{ metadata['project_name'] }}">-->
+    <div class="mb-3 input-group">
+      <span class="input-group-text">Add User</span>
+      <input type="text" class="form-control" id="user_list" name="user_list" placeholder="user@andrew.cmu.edu">
+      <input type="submit" class="btn btn-primary">
+    </div>
+<!--    <label for="user_list">Add user: </label>-->
+<!--    <input name="user_list" id="user_list" type="text">-->
     <div>
-        <ul>
-            {% if metadata['files'] %}
-            {% for file in metadata['files'] %}
-            <li>{{ file }}</li>
+<!--        <ul>-->
+            {% if metadata['user_list'] %}
+            {% for user in metadata['user_list'] %}
+            {% set remove_url = '/projects/' + metadata['_id'] + '/user/' + user + '/remove' %}
+<!--            <li>{{ user }} <a href={{ remove_url }}><img src="/static/trash.svg" alt="Trash"></a></li>-->
+            <span class="badge bg-secondary">{{ user }} <a href={{ remove_url }}><img src="/static/trash.svg" alt="Trash"></a></span>
             {% endfor %}
             {% endif %}
-        </ul>
+<!--        </ul>-->
     </div>
+
 </form>
+<form action={{ action_url }} enctype="multipart/form-data" method="post">
+    <h3>Project Files</h3>
+    <label for="data_type">Specify a data type:</label>
+    <div id="data_type">
+        <div class="form-check">
+            <input type="radio" id="spreadsheet"
+             name="data_type" value="spreadsheet" class="form-check-input">
+            <label for="spreadsheet" class="form-check-label">Spreadsheet</label>
+        </div>
+
+        <div class="form-check">
+            <input type="radio" id="images"
+             name="data_type" value="images" class="form-check-input">
+            <label for="images" class="form-check-label">Images</label>
+        </div>
+
+        <div class="form-check">
+            <input type="radio" id="pyrometry"
+             name="data_type" value="pyrometry" class="form-check-input">
+            <label for="pyrometry" class="form-check-label">Pyrometry</label>
+        </div>
+
+        <div class="form-check">
+            <input type="radio" id="acoustics" name="data_type" value="acoustics" class="form-check-input">
+            <label for="acoustics" class="form-check-label">acoustics</label>
+        </div>
+
+
+        <div class="form-check">
+            <input type="radio" id="micrographs"
+             name="data_type" value="micrographs" class="form-check-input">
+            <label for="micrographs" class="form-check-label">micrographs</label>
+        </div>
+
+        <div class="form-check">
+            <input type="radio" id="other"
+             name="data_type" value="other" class="form-check-input">
+            <label for="other" class="form-check-label">other</label>
+        </div>
+
+        <input type="radio" id="none"
+         name="data_type" value="none"  class="form-check-input" hidden=True checked>
+    </div>
+    <div class="input-group mb-3">
+<!--        <span class="input-group-text">Select a file:</span>-->
+        <input id="files" name="files" type="file" class="form-control" required>
+        <input type="submit" class="btn btn-primary">
+    </div>
+
+</form>
+
+<div>
+    <ul>
+        {% if file_data %}
+        {% for i in range(file_data| length) %}
+        {% set delete_url = download_urls[i] + "/delete" %}
+        <li><a href={{ delete_url }}><img src="/static/trash.svg" alt="Trash"></a><a href={{ download_urls[i] }}>{{ file_data[i]['filename'] }}</a>
+        <p>Checksum: {{ file_data[i]['checksum'] }}</p>
+        </li>
+
+        {% endfor %}
+        {% endif %}
+    </ul>
+</div>
+<br>
+<div>
+    <h3><a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="This data comes directly from the Flow blockchain. Verify that your downloaded data is unchanged by comparing the MD5 checksums."><img src="/static/info-circle-fill.svg" alt="About"></a> Blockchain Data</h3>
+    {% if blockchain_data %}
+    <ul>
+    {% for block in blockchain_data %}
+    <li>
+        <p>Filename: {{ block['filename'] }}</p>
+        <p>File Type: {{ block['file_type'] }}</p>
+        <p>Checksum: {{ block['checksum'] }}</p>
+    </li>
+    {% endfor %}
+    </ul>
+    {% endif %}
+
+</div>
+
+<div id="loading"></div>
+
 
 {% endblock %}

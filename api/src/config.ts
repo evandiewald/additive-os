@@ -27,7 +27,8 @@ export function getConfig() {
 
   const accessApi = process.env.FLOW_ACCESS_API;
 
-  const minterAddress = fcl.withPrefix(process.env.MINTER_ADDRESS!);
+  // const minterAddress = fcl.withPrefix(process.env.MINTER_ADDRESS!);
+  const minterAddress = process.env.MINTER_ADDRESS!;
   const minterPrivateKeyHex = process.env.MINTER_PRIVATE_KEY!;
 
   if (!process.env.MINTER_ADDRESS || !process.env.MINTER_PRIVATE_KEY) {
@@ -36,9 +37,10 @@ export function getConfig() {
 
   const minterAccountKeyIndex = process.env.MINTER_ACCOUNT_KEY_INDEX || 0;
 
-  const ProjectAddress = fcl.withPrefix(
-    process.env.PROJECT_ADDRESS!
-  );
+  // const ProjectAddress = fcl.withPrefix(
+  //   process.env.PROJECT_ADDRESS!
+  // );
+  const ProjectAddress = process.env.REACT_APP_CONTRACT_PROJECT!;
 
   return {
     port,

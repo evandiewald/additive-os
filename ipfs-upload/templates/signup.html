@@ -1,14 +1,38 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<form action="/newuser" enctype="multipart/form-data" method="post">
-    <label for="username">Username (email address)</label>
-    <input id="username" name="username" type="text">
-    <label for="name">Full Name</label>
-    <input id="name" name="password" type="text">
-    <label for="password">Password</label>
-    <input id="password" name="password" type="password">
-    <input type="submit">
-</form>
+<!--<form action="/newuser" enctype="multipart/form-data" method="post">-->
+<!--    <label for="username">Username (email address)</label>-->
+<!--    <input id="username" name="username" type="text">-->
+<!--    <label for="name">Full Name</label>-->
+<!--    <input id="name" name="password" type="text">-->
+<!--    <label for="password">Password</label>-->
+<!--    <input id="password" name="password" type="password">-->
+<!--    <input type="submit">-->
+<!--</form>-->
+
+<div class="card my-3 col-4 mx-auto">
+  <h5 class="card-header">Create an account</h5>
+  <div class="card-body">
+    <form action="/newuser/" enctype="multipart/form-data" method="post" class="form-signin needs-validation">
+        <div class="my-3 mx-5">
+            <label for="username" class="form-label">Email address</label>
+            <input id="username" name="username" class="form-control" required>
+        </div>
+        <div class="my-3 mx-5">
+            <label for="name" class="form-label">Name</label>
+            <input id="name" name="name" class="form-control" required>
+        </div>
+        <div class="mb-3 mx-5">
+            <label for="password" class="form-label">Password</label>
+            <input id="password" name="password" type="password" class="form-control" required>
+            <p>Already have an account? <a href="/loginv2/">Login</a></p>
+        </div>
+        <button type="submit" class="btn btn-primary mx-5">Submit</button>
+    </form>
+  </div>
+</div>
+
+
 
 {% endblock %}

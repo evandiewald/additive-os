@@ -6,18 +6,28 @@ FLOW_API_URL = config.FLOW_API_URL
 
 
 def getProjects():
-    r = requests.get(FLOW_API_URL + '/projects/collection/0x4263f3e1effb2e48')
+    r = requests.get(FLOW_API_URL + '/projects/collection/0x5cc83cb6d766bf4a')
     return r.json()
 
 
 def getMetadata(projectId: str):
     r = requests.get(FLOW_API_URL + '/projects/' + str(projectId))
-    return r.json()
+    # try:
+    response = r.json()
+    response = json.loads(response['collection'])
+    response = response.replace('\'', '"')[1:-1].replace('}, {', '}}, {{').split('}, {')
+    blockchain_data = []
+    for block in response:
+        blockchain_data.append(json.loads(block))
+    response = blockchain_data
+    # except:
+    #     response = {}
+    return response
 
 
 def newProject():
     r = requests.post(FLOW_API_URL + '/projects/new')
-    return r.json()
+    return True
 
 
 def updateProject(projectId: str, metadata):

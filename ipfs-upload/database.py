@@ -4,6 +4,8 @@ import sqlalchemy
 from sqlalchemy import Table, Column, String, MetaData, func
 import hashlib
 import json
+import pymongo
+import flow
 
 ## users table
 def get_hash(hash_input: str):
@@ -72,6 +74,23 @@ def update_project(projects_table, project_id, metadata):
     return True
 
 
+def update_project_mongo(mongo_db, project_id, metadata, files_dict):
+    project_data = mongo_db['project-data']
+    files = mongo_db['files']
+    try:
+        project_data.insert_one(metadata)
+    except pymongo.errors.DuplicateKeyError:
+        newname = { "$set": {"project_name": metadata['project_name'], "last_updated": metadata['last_updated']} }
+        project_data.update_one({"_id": project_id}, newname)
+        if metadata['user_list'] is not None:
+            newuser = {"$push": {"user_list": metadata['user_list']}}
+            project_data.update_one({"_id": project_id}, newuser)
+    if files_dict:
+        files.insert_one(files_dict)
+
+
+
+
 def update_project_files(projects_table, project_id, metadata):
     existing_info = projects_table.select().where(projects_table.columns.project_id == project_id).execute().fetchone()
     if existing_info[3] is not None:
@@ -88,13 +107,72 @@ def get_projects(projects_table, email):
     return select_statement.fetchall()
 
 
+def get_projects_mongo(mongo_db, email):
+    projects = mongo_db['project-data']
+    res = projects.find({'user_list': email})
+    project_list = []
+    for project in res:
+        project_list.append(project)
+    print(project_list)
+    return project_list
+
+
 def get_filename(projects_table, ipfs_hash):
     select_statement = sqlalchemy.select(projects_table).where(projects_table.columns.ipfs_hash == ipfs_hash).execute()
     res = select_statement.fetchone()
     return res[3]
 
 
+def get_filename_mongo(mongo_db, ipfs_hash):
+    files = mongo_db['files']
+    filename = files.find_one({"ipfs_hash": ipfs_hash}, {"filename": 1})
+    print(filename['filename'])
+    return filename['filename']
+
+
 def get_project_metadata(projects_table, project_id):
     select_statement = sqlalchemy.select(projects_table).where(projects_table.columns.project_id == project_id).execute()
     res = select_statement.fetchone()
     return res
+
+
+def get_project_metadata_mongo(mongo_db, project_id):
+    project_data = mongo_db['project-data']
+    files = mongo_db['files']
+    metadata = project_data.find_one({"_id": project_id})
+    file_data = files.find({"project_id": project_id})
+    file_list = []
+    for file in file_data:
+        file_list.append(file)
+    print(metadata)
+    print(file_data)
+    return metadata, file_list
+
+
+def get_data_for_flow(mongo_db, project_id):
+    files = mongo_db['files']
+    file_data = files.find({"project_id": project_id}, {"_id": 0, "project_id": 1, "filename": 1, "file_type": 1, "checksum": 1})
+    file_list = []
+    for file in file_data:
+        file_list.append(file)
+    return file_list
+
+
+def delete_file(mongo_db, ipfs_hash):
+    files = mongo_db['files']
+    project_id = files.find_one({"ipfs_hash": ipfs_hash}, {"project_id": 1, "filename": 1})
+    files.delete_one( {"ipfs_hash": ipfs_hash})
+    return project_id['project_id'], project_id['filename']
+
+
+def remove_user(mongo_db, project_id, user):
+    project_data = mongo_db['project-data']
+    query = { "$pull": { "user_list": user}}
+    project_data.update_one({"_id": project_id}, query)
+
+
+def init_project(mongo_db, user):
+    project_data = mongo_db['project-data']
+    init_project_id = str(max(flow.getProjects()['collection']))
+    project_data.insert_one({"_id": init_project_id, "user_list": [user]})
+    return init_project_id

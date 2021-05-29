@@ -1,12 +1,23 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<div class="card my-3 col-4 mx-auto">
+  <h5 class="card-header">Login</h5>
+  <div class="card-body">
+    <form action="/token/" enctype="multipart/form-data" method="post">
+        <div class="my-3 mx-5">
+            <label for="username" class="form-label">Email address</label>
+            <input id="username" name="username" class="form-control" required>
+        </div>
+        <div class="mb-3 mx-5">
+            <label for="password" class="form-label">Password</label>
+            <input id="password" name="password" type="password" class="form-control">
+            <p><a href="/signup/">New user?</a></p>
+        </div>
+        <button type="submit" class="btn btn-primary mx-5">Submit</button>
+    </form>
+  </div>
+</div>
 
-<form action="/token/" enctype="multipart/form-data" method="post">
-    <label for="username">Username (email address)</label>
-    <input id="username" name="username" type="text">
-    <label for="password">Password</label>
-    <input id="password" name="password" type="password">
-    <input type="submit">
-</form>
+
 {% endblock %}

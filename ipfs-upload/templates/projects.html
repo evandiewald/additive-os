@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<a href="/projects/flow/new" class="btn btn-primary btn-lg my-5">New Project</a>
+<div>
+    <h4>My Projects</h4>
+        {% if project_list %}
+        {% for project in project_list %}
+        {% set project_url = '/projects/' + project['_id'] + '/view' %}
+        <div class="card mb-1">
+            <h5 class="card-header"><a href={{project_url}} >{{ project['project_name'] }}</a></h5>
+          <div class="card-body">
+            {% if project['last_updated'] %}
+            <p class="card-text">Last updated: {{ project['last_updated'] }}</p>
+            {% endif %}
+            {% if project['user_list'] %}
+            <p>Users:
+            {% for user in project['user_list'] %}
+            <span class="badge bg-secondary">{{ user }}</span>
+            {% endfor %}
+            {% endif %}
+            </p>
+            <a href={{project_url}} class="btn btn-primary">View Project</a>
+          </div>
+        </div>
+
+        {% endfor %}
+        {% endif %}
+</div>
+
+{% endblock %}

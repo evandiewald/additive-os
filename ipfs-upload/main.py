@@ -10,7 +10,7 @@ import jwt
 from jwt import PyJWTError
 
 from pydantic import BaseModel
-from flask import request
+import pymongo
 
 from fastapi import Depends, FastAPI, HTTPException, Form, File, UploadFile
 from fastapi.encoders import jsonable_encoder
@@ -48,12 +48,15 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# database
+# Postgres
 db = create_engine(config.DB_CONNECTION_STRING)
 conn = db.connect()
 users_table = tables.users_table(db)
 projects_table = tables.projects_table(db)
 
+# MongoDB
+mongo_client = pymongo.MongoClient(config.MONGO_CONNECTION_STRING)
+mongo_db = mongo_client.amblockchain
 
 # IPFS
 client = ipfshttpclient.connect()
@@ -301,11 +304,24 @@ async def signup(request: Request):
     return templates.TemplateResponse("signup.html", {"request": request})
 
 
-@app.get("/projects/{project_id}/view", response_class=HTMLResponse)
-async def upload(project_id, request: Request):
-    metadata = database.get_project_metadata(projects_table, project_id)
+# @app.get("/projects/{project_id}/view", response_class=HTMLResponse)
+@app.api_route("/projects/{project_id}/view", methods=["GET", "POST", "DELETE"])
+async def upload(project_id, request: Request, current_user: User = Depends(get_current_active_user)):
+    # metadata = database.get_project_metadata(projects_table, project_id)
+    # try:
+    blockchain_data = flow.getMetadata(project_id)
+    print(blockchain_data)
+    # except:
+    #     blockchain_data = None
+    metadata, file_data = database.get_project_metadata_mongo(mongo_db, project_id)
     action_url = "/projects/update/" + project_id
-    return templates.TemplateResponse("upload.html", {"request": request, "metadata": metadata, "action_url": action_url})
+    metadata_update_url = "/update/metadata/" + project_id
+    download_urls = []
+    for file in file_data:
+        download_urls.append('/files/'+file['ipfs_hash'])
+    return templates.TemplateResponse("upload.html", {"request": request, "metadata": metadata, "file_data": file_data,
+                                                      "action_url": action_url, "download_urls": download_urls,
+                                                      "blockchain_data": blockchain_data, "metadata_update_url": metadata_update_url})
 
 
 @app.post("/projects/{project_id}/update", response_class=HTMLResponse)
@@ -316,16 +332,15 @@ async def view_project(project_id, request: Request):
 
 
 @app.post("/projects/update/{project_id}")
-async def import_file_post(project_id, files: Optional[UploadFile] = File(...), project_name: str = Form(...),
-                           user_list: str = Form(...), data_type: str = Form(...)):
+async def import_file_post(project_id, files: Optional[UploadFile] = File(...), data_type: str = Form(...), current_user: User = Depends(get_current_active_user)):
     if files.filename is not '':
         print(data_type)
         if data_type is 'none':
             print("error!")
             return {"Error": "You must specify a data type."}
         myFile = files.file
-        encryptedFile = encryption.encrypt_file(myFile, config.CMK_ID)
-        print('FILE ENCRYPTED? : ', encryptedFile)
+        checksum = encryption.encrypt_file(myFile, config.CMK_ID)
+        print('FILE CHECKSUM : ', checksum)
         try:
             res = client.add(tempfile.gettempdir() + '/encrypted_file')
         except ipfshttpclient.exceptions.ConnectionError:
@@ -335,47 +350,66 @@ async def import_file_post(project_id, files: Optional[UploadFile] = File(...), 
         from_path = '/ipfs/' + fileHash
         try:
             client.files.cp(from_path, '/'+files.filename+'.encrypted')
+            client.pin.add(from_path, '/'+files.filename+'.encrypted')
         except ipfshttpclient.exceptions.ErrorResponse:
             # file already exists
             pass
         files_dict = {
+            "project_id": project_id,
             "file_type": data_type,
             "filename": files.filename,
-            "ipfs_hash": res['Hash']
+            "ipfs_hash": res['Hash'],
+            "checksum": checksum
         }
 
     else:
         files_dict = []
     metadata = {
-        "project_name": project_name,
-        "user_list": user_list,
-        "files": files_dict,
+        # "_id": project_id,
+        # "project_name": project_name,
+        # "user_list": user_list,
         "last_updated": datetime.utcnow().isoformat()
     }
     # flow.updateProject(project_id, json.dumps(metadata))
-    database.update_project(projects_table, project_id, metadata)
-    return RedirectResponse("/projects/"+project_id+"/update")
+    # database.update_project(projects_table, project_id, metadata)
+    database.update_project_mongo(mongo_db, project_id, metadata, files_dict)
+    if files_dict:
+        files_data = database.get_data_for_flow(mongo_db, project_id)
+        flow.updateProject(project_id, str(files_data))
+    return RedirectResponse("/projects/"+project_id+"/view")
 
 
-@app.get("/projects")
-async def list_my_projects(current_user: User = Depends(get_current_active_user)):
-    return database.get_projects(projects_table, current_user['username'])
+@app.post("/update/metadata/{project_id}")
+async def update_metadata(project_id, project_name: str = Form(...), user_list: Optional[str] = Form(None)):
+    print('got here')
+    metadata = {
+        "_id": project_id,
+        "project_name": project_name,
+        "user_list": user_list,
+        "last_updated": datetime.utcnow().isoformat()
+    }
+    files_dict = None
+    database.update_project_mongo(mongo_db, project_id, metadata, files_dict)
+    return RedirectResponse("/projects/"+project_id+"/view")
 
 
-# @app.get("/projects/{projectId}")
-# async def get_project_metadata(projectId):
-#     return flow.getMetadata(projectId)
+@app.get("/projects", response_class=HTMLResponse)
+async def list_my_projects(request: Request, current_user: User = Depends(get_current_active_user)):
+    project_list = database.get_projects_mongo(mongo_db, current_user['username'])
+    return templates.TemplateResponse("projects.html", {"request": request, "project_list": project_list})
 
 
-@app.post("/projects/{projectId}")
+@app.get("/projects/{projectId}")
 async def project_metadata(projectId):
     return flow.getMetadata(projectId)
 
 
-@app.get("/projects/new")
-async def new_project():
+@app.get("/projects/flow/new")
+async def new_project(current_user: User = Depends(get_current_active_user)):
     flow.newProject()
-    return RedirectResponse("/projects")
+    new_project_id = database.init_project(mongo_db, current_user['username'])
+    print("/projects/"+new_project_id+"/view")
+    return RedirectResponse("/projects/"+new_project_id+"/view")
 
 
 @app.get("/files/{ipfs_hash}")
@@ -384,6 +418,28 @@ async def download_and_decrypt(ipfs_hash):
     client.get(ipfs_hash, tempfilepath)
     tempfilepath = tempfile.gettempdir() + '/amblockchainfiles/' + ipfs_hash
     encryption.decrypt_file(tempfilepath)
-    new_name = database.get_filename(projects_table, ipfs_hash)
+    new_name = database.get_filename_mongo(mongo_db, ipfs_hash)
+    # new_name = database.get_filename(projects_table, ipfs_hash)
     copyfile(tempfilepath + '.decrypted', 'F:/downloads/' + new_name)
     os.remove(tempfilepath + '.decrypted')
+
+
+@app.get("/files/{ipfs_hash}/delete")
+async def delete_file(ipfs_hash):
+    # database
+    project_id, filename = database.delete_file(mongo_db, ipfs_hash)
+    # ipfs
+    try:
+        client.files.rm('/'+filename+'.encrypted')
+    except ipfshttpclient.exceptions.ErrorResponse:
+        pass
+    # blockchain
+    files_data = database.get_data_for_flow(mongo_db, project_id)
+    flow.updateProject(project_id, str(files_data))
+    return RedirectResponse("/projects/"+project_id+"/view")
+
+
+@app.get("/projects/{project_id}/user/{user}/remove")
+async def remove_user(project_id, user):
+    database.remove_user(mongo_db, project_id, user)
+    return RedirectResponse("/projects/" + project_id + "/view")

@@ -7,8 +7,8 @@
 	},
 	"accounts": {
 		"testnet-account": {
-			"address": "4263f3e1effb2e48",
-			"keys": "6acbfd94278b0c7fa7e0f8faec9abd76e0afb26012e5da6966291a4b239402e9"
+			"address": "5cc83cb6d766bf4a",
+			"keys": "8e3069b4b4db939392f832f10a41529113c545850f621f8e3ba084e82dd95f48"
 		}
 	},
 	"deployments": {

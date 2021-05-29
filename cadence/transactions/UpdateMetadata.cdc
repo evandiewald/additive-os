@@ -1,4 +1,4 @@
-import AMProject from 0x4263f3e1effb2e48
+import AMProject from 0x5cc83cb6d766bf4a
 
 // This transaction allows the Minter account to mint an NFT
 // and deposit it into its collection.
