@@ -177,7 +177,7 @@ def init_project(mongo_db, user):
     project_data.insert_one({"_id": init_project_id, "user_list": [user]})
     return init_project_id
 
-
+# for sync_pins.py daemon
 def get_pins_list(mongo_db):
     files = mongo_db['files']
     file_data = files.find({}, {"ipfs_hash": 1})

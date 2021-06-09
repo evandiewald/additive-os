@@ -21,4 +21,3 @@ for pin in pins_list:
             print('Added pin for hash ', pin)
 
 
-# print(client.pin.ls())
