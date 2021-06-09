@@ -1,7 +1,16 @@
-from database import get_pins_list
 import pymongo
 import config
 import ipfshttpclient
+
+
+# for sync_pins.py daemon
+def get_pins_list(mongo_db):
+    files = mongo_db['files']
+    file_data = files.find({}, {"ipfs_hash": 1})
+    pins_list = []
+    for file in file_data:
+        pins_list.append(file['ipfs_hash'])
+    return pins_list
 
 
 # MongoDB
