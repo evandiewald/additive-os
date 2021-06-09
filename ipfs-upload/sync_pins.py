@@ -26,7 +26,8 @@ for pin in pins_list:
             res = client.pin.ls(pin)
             print('Already have a pin for hash ', pin)
         except ipfshttpclient.exceptions.ErrorResponse:
-            res = client.pin.add(pin)
+            get_res = client.get(pin)
+            pin_res = client.pin.add(pin)
             print('Added pin for hash ', pin)
 
 
