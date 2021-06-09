@@ -176,3 +176,12 @@ def init_project(mongo_db, user):
     init_project_id = str(max(flow.getProjects()['collection']))
     project_data.insert_one({"_id": init_project_id, "user_list": [user]})
     return init_project_id
+
+
+def get_pins_list(mongo_db):
+    files = mongo_db['files']
+    file_data = files.find({}, {"ipfs_hash": 1})
+    pins_list = []
+    for file in file_data:
+        pins_list.append(file['ipfs_hash'])
+    return pins_list
