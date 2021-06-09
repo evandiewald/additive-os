@@ -8,4 +8,4 @@ FLOW_API_URL = 'http://localhost:3000/v1'
 
 CMK_ID = '20bf0117-0cf0-4ea4-8a18-e34d5964b899'
 
-MONGO_CONNECTION_STRING = "mongodb+srv://amdb-user:nLN1JrDYEiNoHAUS@am-materials.xgcio.mongodb.net/amblockchain"
+MONGO_CONNECTION_STRING = "mongodb+srv://amdb-user:nLN1JrDYEiNoHAUS@am-materials.xgcio.mongodb.net/amblockchain?ssl=true&ssl_cert_reqs=CERT_NONE"
