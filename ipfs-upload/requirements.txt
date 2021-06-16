@@ -35,7 +35,6 @@ netaddr==0.8.0
 orjson==3.5.2
 passlib==1.7.4
 promise==2.3
-psycopg2==2.8.6
 pyasn1==0.4.8
 pycparser==2.20
 pydantic==1.8.2
@@ -51,7 +50,6 @@ rsa==4.7.2
 Rx==1.6.1
 s3transfer==0.4.2
 six==1.16.0
-SQLAlchemy==1.4.15
 starlette==0.13.6
 typing-extensions==3.10.0.0
 ujson==4.0.2

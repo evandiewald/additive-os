@@ -1,7 +1,7 @@
 import config
-import psycopg2
-import sqlalchemy
-from sqlalchemy import Table, Column, String, MetaData, func
+# import psycopg2
+# import sqlalchemy
+# from sqlalchemy import Table, Column, String, MetaData, func
 import hashlib
 import json
 import pymongo
@@ -84,28 +84,28 @@ def update_password(mongo_db, username, new_password):
 
 
 ## projects table
-def update_project(projects_table, project_id, metadata):
-    try:
-        insert_statement = projects_table.insert().values(user_list=metadata['user_list'],
-                                                          project_id=project_id,
-                                                          project_name=metadata['project_name'],
-                                                          files=json.dumps(metadata['files']),
-                                                          last_updated=metadata['last_updated']).execute()
-    except sqlalchemy.exc.IntegrityError:
-        existing_info = projects_table.select().where(projects_table.columns.project_id == project_id).execute().fetchone()
-        if not metadata['user_list']:
-            metadata['user_list'] = existing_info[2]
-        if not metadata['project_name']:
-            metadata['project_name'] = existing_info[1]
-        if existing_info[3] is not None:
-            metadata['files'] = list(existing_info[3]).append(metadata['files'])
-        print(metadata['user_list'])
-        update_statement = projects_table.update().where(projects_table.columns.project_id == project_id).values(user_list=metadata['user_list'],
-                                                                                                                 project_name=metadata['project_name'],
-                                                                                                                 files=json.dumps(metadata['files']),
-                                                                                                                 last_updated=metadata['last_updated']).execute()
-        print('updated')
-    return True
+# def update_project(projects_table, project_id, metadata):
+#     try:
+#         insert_statement = projects_table.insert().values(user_list=metadata['user_list'],
+#                                                           project_id=project_id,
+#                                                           project_name=metadata['project_name'],
+#                                                           files=json.dumps(metadata['files']),
+#                                                           last_updated=metadata['last_updated']).execute()
+#     except sqlalchemy.exc.IntegrityError:
+#         existing_info = projects_table.select().where(projects_table.columns.project_id == project_id).execute().fetchone()
+#         if not metadata['user_list']:
+#             metadata['user_list'] = existing_info[2]
+#         if not metadata['project_name']:
+#             metadata['project_name'] = existing_info[1]
+#         if existing_info[3] is not None:
+#             metadata['files'] = list(existing_info[3]).append(metadata['files'])
+#         print(metadata['user_list'])
+#         update_statement = projects_table.update().where(projects_table.columns.project_id == project_id).values(user_list=metadata['user_list'],
+#                                                                                                                  project_name=metadata['project_name'],
+#                                                                                                                  files=json.dumps(metadata['files']),
+#                                                                                                                  last_updated=metadata['last_updated']).execute()
+#         print('updated')
+#     return True
 
 
 def update_project_mongo(mongo_db, project_id, metadata, files_dict):
@@ -125,20 +125,20 @@ def update_project_mongo(mongo_db, project_id, metadata, files_dict):
 
 
 
-def update_project_files(projects_table, project_id, metadata):
-    existing_info = projects_table.select().where(projects_table.columns.project_id == project_id).execute().fetchone()
-    if existing_info[3] is not None:
-        metadata['files'] = [metadata['files'], existing_info[3]]
-    update_statement = projects_table.update().where(projects_table.columns.project_id == project_id).values(files=metadata['files'],
-                                                                                                             last_updated=metadata['last_updated']).execute()
-    print('updated')
-    return True
+# def update_project_files(projects_table, project_id, metadata):
+#     existing_info = projects_table.select().where(projects_table.columns.project_id == project_id).execute().fetchone()
+#     if existing_info[3] is not None:
+#         metadata['files'] = [metadata['files'], existing_info[3]]
+#     update_statement = projects_table.update().where(projects_table.columns.project_id == project_id).values(files=metadata['files'],
+#                                                                                                              last_updated=metadata['last_updated']).execute()
+#     print('updated')
+#     return True
 
 
-def get_projects(projects_table, email):
-    email = '{' + email + '}'
-    select_statement = sqlalchemy.select(projects_table).where(projects_table.columns.user_list.contains(email)).execute()
-    return select_statement.fetchall()
+# def get_projects(projects_table, email):
+#     email = '{' + email + '}'
+#     select_statement = sqlalchemy.select(projects_table).where(projects_table.columns.user_list.contains(email)).execute()
+#     return select_statement.fetchall()
 
 
 def get_projects_mongo(mongo_db, email):
@@ -151,10 +151,10 @@ def get_projects_mongo(mongo_db, email):
     return project_list
 
 
-def get_filename(projects_table, ipfs_hash):
-    select_statement = sqlalchemy.select(projects_table).where(projects_table.columns.ipfs_hash == ipfs_hash).execute()
-    res = select_statement.fetchone()
-    return res[3]
+# def get_filename(projects_table, ipfs_hash):
+#     select_statement = sqlalchemy.select(projects_table).where(projects_table.columns.ipfs_hash == ipfs_hash).execute()
+#     res = select_statement.fetchone()
+#     return res[3]
 
 
 def get_filename_mongo(mongo_db, ipfs_hash):
@@ -164,10 +164,10 @@ def get_filename_mongo(mongo_db, ipfs_hash):
     return filename['filename']
 
 
-def get_project_metadata(projects_table, project_id):
-    select_statement = sqlalchemy.select(projects_table).where(projects_table.columns.project_id == project_id).execute()
-    res = select_statement.fetchone()
-    return res
+# def get_project_metadata(projects_table, project_id):
+#     select_statement = sqlalchemy.select(projects_table).where(projects_table.columns.project_id == project_id).execute()
+#     res = select_statement.fetchone()
+#     return res
 
 
 def get_project_metadata_mongo(mongo_db, project_id):
