@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card my-3 col-4 mx-auto">
+  <h5 class="card-header"><a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="By ensuring that the MD5 checksum is identical before and after uploads, you can independently verify that your file has not been tampered with."><img src="/static/info-circle-fill.svg" alt="About"></a> Generate Checksum</h5>
+  <div class="card-body">
+    <form action="/checksum/validate" enctype="multipart/form-data" method="post">
+        <div class="input-group mb-3">
+            <input id="files" name="files" type="file" class="form-control" required>
+            <input type="submit" class="btn btn-primary">
+        </div>
+    </form>
+  </div>
+</div>
+
+{% if checksum %}
+<div class="card my-3 col-4 mx-auto">
+  <h5 class="card-header">Result</h5>
+  <div class="card-body">
+      <div class="card-text">
+          <p>MD5 Checksum: {{ checksum }}</p>
+      </div>
+  </div>
+</div>
+{% endif %}
+
+
+{% endblock %}

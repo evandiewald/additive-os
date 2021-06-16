@@ -1,5 +1,30 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<div>
 
+        <div class="card my-3 col-5 mx-auto">
+            <h5 class="card-header">Project ID: {{ project_id }}</h5>
+          <div class="card-body">
+            <p>Project Title: {{ metadata['project_name'] }}</p>
+            <p>Owner's Address: {{ blockchain_data[0] }}</p>
+            <p><a href={{metadata['transaction_url']}} target="_blank" rel="noopener noreferrer">View Contract Initiation Transaction on Etherscan <i class="bi bi-box-arrow-up-right"></i></a></p>
+            <h6>Files:</h6>
+            {% for i in range(files_list|length) %}
+            <p>File name: {{ files_list[i]['filename'] }}</p>
+            <p>File type: {{ files_list[i]['file_type'] }}</p>
+              <p>Part Checksum (Ethereum): <a href={{files_list[i]['transaction_url']}} target="_blank" rel="noopener noreferrer">{{ blockchain_data[1][i] }} <i class="bi bi-box-arrow-up-right"></i></a></p>
+            <p>
+                Part Checksum (Database): {{ files_list[i]['checksum'] }}
+                {% if blockchain_data[1][i] == files_list[i]['checksum'] %}
+                <i class="bi bi-shield-check"></i>
+                {% else %}
+                <i class="bi bi-exclamation-square"></i>
+                {% endif %}
+            </p>
+            {% endfor %}
+          </div>
+        </div>
+
+</div>
 {% endblock %}

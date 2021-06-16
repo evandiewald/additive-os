@@ -3,7 +3,7 @@
 {% block content %}
 
 <form action={{ metadata_update_url }} enctype="multipart/form-data" method="post">
-    <h2><span class="badge bg-secondary mt-5"><img src="/static/folder.svg" height="24"> {{ metadata['project_name'] }}</span></h2>
+    <h2><span class="badge bg-secondary mt-5"><i class="bi bi-folder"></i> {{ metadata['project_name'] }}</span></h2>
 <!--    <h3>Project Metadata</h3>-->
     <div class="mb-3 input-group">
       <span class="input-group-text">Project Name</span>
@@ -55,14 +55,26 @@
 
         <div class="form-check">
             <input type="radio" id="acoustics" name="data_type" value="acoustics" class="form-check-input">
-            <label for="acoustics" class="form-check-label">acoustics</label>
+            <label for="acoustics" class="form-check-label">Acoustics</label>
         </div>
 
 
         <div class="form-check">
             <input type="radio" id="micrographs"
              name="data_type" value="micrographs" class="form-check-input">
-            <label for="micrographs" class="form-check-label">micrographs</label>
+            <label for="micrographs" class="form-check-label">Micrographs</label>
+        </div>
+
+        <div class="form-check">
+            <input type="radio" id="design-file"
+             name="data_type" value="design-file" class="form-check-input">
+            <label for="design-file" class="form-check-label">Design File</label>
+        </div>
+
+        <div class="form-check">
+            <input type="radio" id="build-file"
+             name="data_type" value="build-file" class="form-check-input">
+            <label for="build-file" class="form-check-label">Build File</label>
         </div>
 
         <div class="form-check">
@@ -74,8 +86,14 @@
         <input type="radio" id="none"
          name="data_type" value="none"  class="form-check-input" hidden=True checked>
     </div>
+
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" value="False" id="remotepin" name="remotepin">
+      <label class="form-check-label" for="remotepin">
+        Pin remotely
+      </label>
+    </div>
     <div class="input-group mb-3">
-<!--        <span class="input-group-text">Select a file:</span>-->
         <input id="files" name="files" type="file" class="form-control" required>
         <input type="submit" class="btn btn-primary">
     </div>
@@ -87,8 +105,9 @@
         {% if file_data %}
         {% for i in range(file_data| length) %}
         {% set delete_url = download_urls[i] + "/delete" %}
-        <li><a href={{ delete_url }}><img src="/static/trash.svg" alt="Trash"></a><a href={{ download_urls[i] }}>{{ file_data[i]['filename'] }}</a>
+        <li><a href={{ delete_url }}><i class="bi bi-trash"></i></a><a href={{ download_urls[i] }}>{{ file_data[i]['filename'] }}</a>
         <p>Checksum: {{ file_data[i]['checksum'] }}</p>
+        <p>File Type: {{ file_data[i]['file_type'] }}</p>
         </li>
 
         {% endfor %}
@@ -97,18 +116,10 @@
 </div>
 <br>
 <div>
-    <h3><a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="This data comes directly from the Flow blockchain. Verify that your downloaded data is unchanged by comparing the MD5 checksums."><img src="/static/info-circle-fill.svg" alt="About"></a> Blockchain Data</h3>
-    {% if blockchain_data %}
-    <ul>
-    {% for block in blockchain_data %}
-    <li>
-        <p>Filename: {{ block['filename'] }}</p>
-        <p>File Type: {{ block['file_type'] }}</p>
-        <p>Checksum: {{ block['checksum'] }}</p>
-    </li>
-    {% endfor %}
-    </ul>
-    {% endif %}
+    {% set blockchain_url = '/projects/' + metadata['_id'] + '/blockchain' %}
+    <h3><a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="This data comes directly from the Ethereum blockchain. Verify that your downloaded data is unchanged by comparing the MD5 checksums.">
+        <i class="bi bi-info-circle-fill"></i></a> <a href={{blockchain_url}}>View Blockchain Data</a></h3>
+
 
 </div>
 

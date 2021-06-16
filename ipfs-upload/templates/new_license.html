@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card my-5 col-5 mx-auto">
+  <h5 class="card-header">New Print License</h5>
+  <div class="card-body">
+    <form action="/licenses/new/post" enctype="multipart/form-data" method="post">
+        <div class="my-3 mx-5">
+            <label for="username" class="form-label">Licensor Email address</label>
+            <input id="username" name="username" class="form-control" value={{ username }} readonly>
+        </div>
+        <div class="my-3 mx-5">
+            <label for="licensed_by_address" class="form-label">Licensor ETH Wallet Address</label>
+            <input id="licensed_by_address" name="licensed_by_address" class="form-control" value={{ address }} readonly>
+        </div>
+        <div class="my-3 mx-5">
+            <label for="licensed_to_email" class="form-label">Licensee Email Address</label>
+            <input id="licensed_to_email" name="licensed_to_email" class="form-control" required>
+        </div>
+        <div class="my-3 mx-5">
+            <label for="licensed_to_address" class="form-label">Licensee ETH Wallet Address</label>
+            <input id="licensed_to_address" name="licensed_to_address" class="form-control" required>
+        </div>
+        <div class="my-3 mx-5">
+            <label for="numprints" class="form-label">Number of Licensed Prints</label>
+            <input id="numprints" name="numprints" class="form-control" type="number" min="1" step="1" required>
+        </div>
+        <div class="my-3 mx-5">
+            <label for="files" class="form-label">Select Design File</label>
+            <input id="files" name="files" type="file" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary mx-5">Submit</button>
+    </form>
+  </div>
+</div>
+
+
+{% endblock %}

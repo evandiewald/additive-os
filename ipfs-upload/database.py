@@ -6,47 +6,81 @@ import hashlib
 import json
 import pymongo
 import flow
+import datetime
+import ethereum
+
 
 ## users table
 def get_hash(hash_input: str):
     return hashlib.sha256(bytes(hash_input, 'utf-8')).hexdigest()
 
 
-def add_user(users_table, username, raw_password, name):
-    try:
-        insert_statement = users_table.insert().values(username=username, pwhash=get_hash(raw_password), name=name)
-        insert_statement.execute()
-        return 'Success'
-    except sqlalchemy.exc.IntegrityError:
-        return {"UserExistsError": "User with this email already exists."}
+# def add_user(users_table, username, raw_password, name):
+#     try:
+#         insert_statement = users_table.insert().values(username=username, pwhash=get_hash(raw_password), name=name)
+#         insert_statement.execute()
+#         return 'Success'
+#     except sqlalchemy.exc.IntegrityError:
+#         return {"UserExistsError": "User with this email already exists."}
+def add_user(mongo_db, username, raw_password, name, address):
+    users = mongo_db['users']
+    new_user = {"_id": username, "username": username, "pwhash": get_hash(raw_password), "name": name, "address": address}
+    # try:
+    users.insert_one(new_user)
+    # except:
+    return 'Success'
 
 
-def get_user(users_table, username):
-    try:
-        select_statement = users_table.select().where(users_table.columns.username==username)
-        result = select_statement.execute().fetchone()
-        user = {"username": result[0], "pwhash": result[1], "name": result[2]}
-        return user
-    except TypeError:
-        return {"UserDoesNotExistError": "User with this email does not exist."}
+
+# def get_user(users_table, username):
+#     try:
+#         select_statement = users_table.select().where(users_table.columns.username==username)
+#         result = select_statement.execute().fetchone()
+#         user = {"username": result[0], "pwhash": result[1], "name": result[2]}
+#         return user
+#     except TypeError:
+#         return {"UserDoesNotExistError": "User with this email does not exist."}
+
+def get_user(mongo_db, username):
+    users = mongo_db['users']
+    user = users.find_one({"username": username})
+    return user
 
 
-def delete_user(users_table, username):
-    delete_statement = users_table.delete().where(users_table.columns.username==username).execute()
+# def delete_user(users_table, username):
+#     delete_statement = users_table.delete().where(users_table.columns.username==username).execute()
+#     return True
+def delete_user(mongo_db, username):
+    users = mongo_db['users']
+    users.delete_one({"username": username})
     return True
 
 
-def authenticated(users_table, username, password):
-    user = get_user(users_table, username)
+# def authenticated(users_table, username, password):
+#     user = get_user(users_table, username)
+#     if user['pwhash'] == get_hash(password):
+#         return user
+#     else:
+#         return False
+
+def authenticated(mongo_db, username, password):
+    user = get_user(mongo_db, username)
     if user['pwhash'] == get_hash(password):
         return user
     else:
         return False
 
 
-def update_password(users_table, username, new_password):
-    update_statement = users_table.update().where(users_table.columns.username==username).values(pwhash=get_hash(new_password)).execute()
+# def update_password(users_table, username, new_password):
+#     update_statement = users_table.update().where(users_table.columns.username==username).values(pwhash=get_hash(new_password)).execute()
+#     return True
+def update_password(mongo_db, username, new_password):
+    users = mongo_db['users']
+    query = {"username": username}
+    newvalues = {"$set": {"pwhash": get_hash(new_password)} }
+    users.update_one(query, newvalues)
     return True
+
 
 
 ## projects table
@@ -171,10 +205,48 @@ def remove_user(mongo_db, project_id, user):
     project_data.update_one({"_id": project_id}, query)
 
 
-def init_project(mongo_db, user):
+def init_project(mongo_db, user, transaction_url):
     project_data = mongo_db['project-data']
-    init_project_id = str(max(flow.getProjects()['collection']))
-    project_data.insert_one({"_id": init_project_id, "user_list": [user]})
+    # init_project_id = str(max(flow.getProjects()['collection']))
+    init_project_id = str(ethereum.get_project_count() - 1)
+    project_data.insert_one({"_id": init_project_id, "user_list": [user], "transaction_url": transaction_url, "project_name": "Untitled Project"})
     return init_project_id
 
+
+def add_license(mongo_db, license_id, transaction_url, num_prints, part_hash, licensed_by_email, licensed_to_email, licensed_by_address, licensed_to_address):
+    license_data = mongo_db['license-data']
+    license_data.insert_one({"_id": license_id, "transaction_url": transaction_url, "num_prints": num_prints,
+                             "part_hash": part_hash, "licensed_by_email": licensed_by_email, "licensed_to_email": licensed_to_email,
+                             "licensed_by_address": licensed_by_address, "licensed_to_address": licensed_to_address,
+                             "prints": []})
+
+
+def add_print(mongo_db, license_id, timestamp, operatorid, report_hash, transaction_url):
+    license_data = mongo_db['license-data']
+
+    newprint = {"$push": {"prints": {
+        "timestamp": timestamp,
+        "timestamp_str": datetime.datetime.now().isoformat(),
+        "operator_id": operatorid,
+        "report_hash": report_hash,
+        "transaction_url": transaction_url
+    }}}
+    license_data.update_one({"_id": license_id}, newprint)
+
+
+
+def get_licenses(mongo_db):
+    license_data = mongo_db['license-data']
+    license_list = []
+    licenses = license_data.find()
+    for license in licenses:
+        license_list.append(license)
+    return license_list
+
+
+def get_print(mongo_db, license_id, print_id):
+    license_data = mongo_db['license-data']
+    data = license_data.find_one({"_id": license_id})
+    data['prints'] = data['prints'][print_id]
+    return data
 

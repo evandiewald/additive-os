@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card my-3 col-4 mx-auto">
+  <h5 class="card-header">New Print for License ID: {{ license_id }}</h5>
+  <div class="card-body">
+    {% set new_print_url = '/licenses/' + license_id + '/new_print/post' %}
+    <form action={{ new_print_url }} enctype="multipart/form-data" method="post">
+        <div class="my-3 mx-3">
+            <label for="operatorid" class="form-label">Operator ID</label>
+            <input id="operatorid" name="operatorid" class="form-control" required>
+        </div>
+        <div class="mb-3 mx-3">
+            <label for="files" class="form-label">Build Report</label>
+            <input id="files" name="files" type="file" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary mx-3">Submit</button>
+    </form>
+  </div>
+</div>
+
+
+{% endblock %}

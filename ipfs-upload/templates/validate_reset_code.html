@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card my-3 col-4 mx-auto">
+  <h5 class="card-header">Reset Password Code</h5>
+  <div class="card-body">
+    <form action="/reset_password/verify" enctype="multipart/form-data" method="post">
+        <div class="my-3 mx-5">
+            <p>Please enter the code that was sent to your email address. Make sure to check your spam folder.</p>
+            <label for="code" class="form-label">Reset Code</label>
+            <input id="code" name="code" class="form-control" required>
+        </div>
+        <div class="my-3 mx-5">
+            <input id="code_hash" name="code_hash" class="form-control" value={{ code_hash }} hidden=True>
+            <input id="expiration" name="expiration" class="form-control" value={{ expiration }} hidden=True>
+            <input id="username" name="username" class="form-control" value={{ username }} hidden=True>
+        </div>
+        <button type="submit" class="btn btn-primary mx-5">Confirm</button>
+    </form>
+  </div>
+</div>
+
+
+{% endblock %}

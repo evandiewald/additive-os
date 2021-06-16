@@ -151,4 +151,4 @@ def decrypt_file(filename):
     # The same security issue described at the end of encrypt_file() exists
     # here, too, i.e., the wish to wipe the data_key_plaintext value from
     # memory.
-    return True
+    return filename + '.decrypted'

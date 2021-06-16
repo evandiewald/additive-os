@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div>
+
+        <div class="card my-3 col-5 mx-auto">
+            <h5 class="card-header">License ID: {{ license['_id'] }}</h5>
+          <div class="card-body">
+              <h5>License Details</h5>
+              <table class="table table-light table-hover">
+                  <tr>
+                      <td>Licensor</td>
+                      <td>{{ license['licensed_by_email'] }}</td>
+                  </tr>
+                  <tr>
+                      <td>Licensee</td>
+                      <td>{{ license['licensed_to_email'] }}</td>
+                  </tr>
+                  <tr>
+                      <td>Part Checksum</td>
+                      <td>{{ license['part_hash'] }}</td>
+                  </tr>
+                  <tr>
+                      <td>Number of Licensed Prints</td>
+                      <td>{{ license['num_prints'] }}</td>
+                  </tr>
+              </table>
+
+              <h5>Print Details</h5>
+              <table class="table table-light table-hover">
+                  <tr>
+                      <td>Timestamp</td>
+                      <td>{{ license['prints']['timestamp_str'] }}</td>
+                  </tr>
+                  <tr>
+                      <td>Operator ID</td>
+                      <td>{{ license['prints']['operator_id'] }}</td>
+                  </tr>
+                  <tr>
+                      <td>Build Report Hash</td>
+                      <td>{{ license['prints']['report_hash'] }}</td>
+                  </tr>
+              </table>
+
+
+            <div class="container">
+                <div class="row">
+                    <a href={{license['transaction_url']}} class="btn btn-secondary mb-3 mx-1 col">View License Transaction on Etherscan</a>
+                    <a href={{license['prints']['transaction_url']}} class="btn btn-secondary mb-3 mx-1 col">View Print Transaction on Etherscan</a>
+                      {% set qr_url = '/licenses/' + license_id + '/prints/' + print_id + '/qr' %}
+                    <a href={{qr_url}} class="btn btn-secondary mb-3 mx-1 col">Download License QR Code</a>
+                </div>
+            </div>
+
+          </div>
+        </div>
+
+</div>
+
+{% endblock %}

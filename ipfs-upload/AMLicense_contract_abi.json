@@ -1,0 +1,335 @@
+[
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_licensedby",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_licensedto",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_numprints",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "_parthash",
+				"type": "string"
+			}
+		],
+		"name": "addLicense",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "licensedby",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "licensedto",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "numprints",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "parthash",
+						"type": "string"
+					},
+					{
+						"components": [
+							{
+								"internalType": "uint256",
+								"name": "timestamp",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "operatorid",
+								"type": "uint256"
+							},
+							{
+								"internalType": "string",
+								"name": "reporthash",
+								"type": "string"
+							}
+						],
+						"internalType": "struct AMLicense.Print[]",
+						"name": "prints",
+						"type": "tuple[]"
+					}
+				],
+				"internalType": "struct AMLicense.License",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_licenseid",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_timestamp",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_operatorid",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "_reporthash",
+				"type": "string"
+			}
+		],
+		"name": "addPrint",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_licenseid",
+				"type": "uint256"
+			}
+		],
+		"name": "getLicense",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "licensedby",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "licensedto",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "numprints",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "parthash",
+						"type": "string"
+					},
+					{
+						"components": [
+							{
+								"internalType": "uint256",
+								"name": "timestamp",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "operatorid",
+								"type": "uint256"
+							},
+							{
+								"internalType": "string",
+								"name": "reporthash",
+								"type": "string"
+							}
+						],
+						"internalType": "struct AMLicense.Print[]",
+						"name": "prints",
+						"type": "tuple[]"
+					}
+				],
+				"internalType": "struct AMLicense.License",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getLicenseCount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_licenseid",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_printid",
+				"type": "uint256"
+			}
+		],
+		"name": "getPrint",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint256",
+						"name": "timestamp",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "operatorid",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "reporthash",
+						"type": "string"
+					}
+				],
+				"internalType": "struct AMLicense.Print",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "licenseCount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "licenseList",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "licensedby",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "licensedto",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "numprints",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "parthash",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "listLicenses",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "licensedby",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "licensedto",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "numprints",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "parthash",
+						"type": "string"
+					},
+					{
+						"components": [
+							{
+								"internalType": "uint256",
+								"name": "timestamp",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "operatorid",
+								"type": "uint256"
+							},
+							{
+								"internalType": "string",
+								"name": "reporthash",
+								"type": "string"
+							}
+						],
+						"internalType": "struct AMLicense.Print[]",
+						"name": "prints",
+						"type": "tuple[]"
+					}
+				],
+				"internalType": "struct AMLicense.License[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+]
