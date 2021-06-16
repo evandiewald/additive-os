@@ -17,6 +17,12 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+
+@app.get("/")
+async def homepage(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+
 @app.get("/licenses/{license_id}/prints/{print_id}")
 async def view_print_license_info(request: Request, license_id, print_id):
     license = database.get_print(mongo_db, int(license_id), int(print_id))
