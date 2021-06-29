@@ -31,99 +31,199 @@
     </div>
 
 </form>
+
+<br>
+
+<h3><a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Add files to your project. Specify a file type, choose whether to add the checksum to the blockchain, and supply the UID of the parent component to create associations.">
+    <i class="bi bi-info-circle-fill"></i></a> Project Files</h3>
 <form action={{ action_url }} enctype="multipart/form-data" method="post">
-    <h3>Project Files</h3>
-    <label for="data_type">Specify a data type:</label>
-    <div id="data_type">
-        <div class="form-check">
-            <input type="radio" id="spreadsheet"
-             name="data_type" value="spreadsheet" class="form-check-input">
-            <label for="spreadsheet" class="form-check-label">Spreadsheet</label>
-        </div>
-
-        <div class="form-check">
-            <input type="radio" id="images"
-             name="data_type" value="images" class="form-check-input">
-            <label for="images" class="form-check-label">Images</label>
-        </div>
-
-        <div class="form-check">
-            <input type="radio" id="pyrometry"
-             name="data_type" value="pyrometry" class="form-check-input">
-            <label for="pyrometry" class="form-check-label">Pyrometry</label>
-        </div>
-
-        <div class="form-check">
-            <input type="radio" id="acoustics" name="data_type" value="acoustics" class="form-check-input">
-            <label for="acoustics" class="form-check-label">Acoustics</label>
-        </div>
 
 
-        <div class="form-check">
-            <input type="radio" id="micrographs"
-             name="data_type" value="micrographs" class="form-check-input">
-            <label for="micrographs" class="form-check-label">Micrographs</label>
-        </div>
-
-        <div class="form-check">
-            <input type="radio" id="design-file"
-             name="data_type" value="design-file" class="form-check-input">
-            <label for="design-file" class="form-check-label">Design File</label>
-        </div>
-
-        <div class="form-check">
-            <input type="radio" id="build-file"
-             name="data_type" value="build-file" class="form-check-input">
-            <label for="build-file" class="form-check-label">Build File</label>
-        </div>
-
-        <div class="form-check">
-            <input type="radio" id="other"
-             name="data_type" value="other" class="form-check-input">
-            <label for="other" class="form-check-label">other</label>
-        </div>
-
-        <input type="radio" id="none"
-         name="data_type" value="none"  class="form-check-input" hidden=True checked>
+    <div class="mb-3 input-group">
+        <span class="input-group-text">Specify File Type</span>
+        <select class="form-select" id="data_type" name="data_type" required>
+            <option selected >Choose...</option>
+            <option value="spreadsheet">Spreadsheet</option>
+            <option value="images">Image(s)</option>
+            <option value="pyrometry">Pyrometry</option>
+            <option value="acoustics">Acoustics</option>
+            <option value="micrographs">Micrograph(s)</option>
+            <option value="design_file">CAD File</option>
+            <option value="build_file">Build Preparation File</option>
+            <option value="high_speed">High Speed Video</option>
+            <option value="other">Other</option>
+        </select>
+        <span class="input-group-text">Add to blockchain?</span>
+        <select class="form-select" id="toblockchain" name="toblockchain">
+            <option value="False" selected>No</option>
+            <option value="True">Yes</option>
+        </select>
     </div>
 
-    <div class="form-check">
+    <div class="form-check" hidden>
       <input class="form-check-input" type="checkbox" value="False" id="remotepin" name="remotepin">
       <label class="form-check-label" for="remotepin">
         Pin remotely
       </label>
     </div>
-    <div class="input-group mb-3">
-        <input id="files" name="files" type="file" class="form-control" required>
-        <input type="submit" class="btn btn-primary">
+
+<!--    <label for="blockchain_check"><h6>Blockchain</h6></label>-->
+<!--    <div class="form-check" id="blockchain_check">-->
+<!--      <input class="form-check-input" type="checkbox" value="False" id="toblockchain" name="toblockchain">-->
+<!--      <label class="form-check-label" for="toblockchain">-->
+<!--        Add to blockchain-->
+<!--      </label>-->
+<!--    </div>-->
+
+<!--    <label for="ontology"><h6>File Ontology</h6></label>-->
+    <div class="mb-3 input-group" id="ontology">
+      <span class="input-group-text">FID (if applicable)</span>
+<!--      <input type="text" name="fid" class="form-control" id="fid" placeholder="CMU03.02">-->
+      <select class="form-select" id="fid" name="fid">
+          {% if fid_list %}
+          <option value="n/a" selected>N/A</option>
+          {% for fid in fid_list %}
+          <option value={{fid['_id']}}>{{fid['_id']}}</option>
+          {% endfor %}
+          {% else %}
+          <option value="n/a">Spreadsheet not imported yet</option>
+          {% endif %}
+      </select>
+      <input id="files" name="files" type="file" class="form-control" required>
+      <input type="submit" class="btn btn-primary">
     </div>
+
+<!--    <div class="input-group mb-3">-->
+<!--        <input id="files" name="files" type="file" class="form-control" required>-->
+<!--        <input type="submit" class="btn btn-primary">-->
+<!--    </div>-->
 
 </form>
 
 <div>
-    <ul>
+    <table class="table table-light">
+        <tr>
+            <th>Filename</th>
+            <th>UID</th>
+            <th>FID</th>
+            <th>File Type</th>
+            <th>Checksum</th>
+            <th style="text-align: center">Download</th>
+            <th style="text-align: center">Remove</th>
+        </tr>
         {% if file_data %}
         {% for i in range(file_data| length) %}
         {% set delete_url = download_urls[i] + "/delete" %}
-        <li><a href={{ delete_url }}><i class="bi bi-trash"></i></a><a href={{ download_urls[i] }}>{{ file_data[i]['filename'] }}</a>
-        <p>Checksum: {{ file_data[i]['checksum'] }}</p>
-        <p>File Type: {{ file_data[i]['file_type'] }}</p>
-        </li>
-
+        <tr>
+            <td>{{ file_data[i]['filename'] }}</td>
+            <td>{{ file_data[i]['UID'] }}</td>
+            <td>{{ file_data[i]['FID'] }}</td>
+            <td>{{ file_data[i]['file_type'] }}</td>
+            <td>{{ file_data[i]['checksum'] }} <a href="/checksum" target="_blank" rel="noopener noreferrer"><i class="bi bi-box-arrow-up-right"></i></a></td>
+            <td style="text-align: center"><a href={{ download_urls[i] }}><i class="bi bi-download"></i></a></td>
+            <td style="text-align: center"><a href={{ delete_url }}><i class="bi bi-trash"></i></a></td>
+        </tr>
         {% endfor %}
         {% endif %}
-    </ul>
+    </table>
+
 </div>
+
+
+<h3><a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Log post-processing steps such as heat treatments or machining.">
+    <i class="bi bi-info-circle-fill"></i></a> Post-Processing</h3>
+{% set postprocess_url = '/postprocess/' + project_id %}
+<form action={{ postprocess_url }} enctype="multipart/form-data" method="post">
+<!--    <label for="output"><h6>Characterization Outputs</h6></label>-->
+    <div class="mb-3 input-group" id="postprocess">
+      <span class="input-group-text">UID</span>
+<!--      <input type="text" name="output_uid" class="form-control" id="output_uid" placeholder="CMU03.02">-->
+      <select class="form-select" id="postprocess_uid" name="postprocess_uid">
+          {% if fid_list %}
+          <option value="n/a" selected>N/A</option>
+          {% for fid in fid_list %}
+          <option value={{fid['_id']}}>{{fid['_id']}}</option>
+          {% endfor %}
+          {% else %}
+          <option value="n/a">Spreadsheet not imported yet</option>
+          {% endif %}
+      </select>
+      <span class="input-group-text">Output Type</span>
+      <select class="form-select" id="postprocess_type" name="postprocess_type">
+        <option selected>Choose...</option>
+        <option value="heat_treatment">Heat Treatment</option>
+        <option value="machining">Machining</option>
+      </select>
+      <span class="input-group-text">Details</span>
+      <input type="text" name="postprocess_value" class="form-control" id="postprocess_value" placeholder="2 hours @ 600C">
+      <input type="submit" class="btn btn-primary">
+    </div>
+</form>
+
+<br>
+
+<h3><a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Log characterization/testing output data such as part density or UTS.">
+    <i class="bi bi-info-circle-fill"></i></a> Characterization Data</h3>
+{% set output_url = '/outputs/' + project_id %}
+<form action={{ output_url }} enctype="multipart/form-data" method="post">
+<!--    <label for="output"><h6>Characterization Outputs</h6></label>-->
+    <div class="mb-3 input-group" id="output">
+      <span class="input-group-text">UID</span>
+<!--      <input type="text" name="output_uid" class="form-control" id="output_uid" placeholder="CMU03.02">-->
+      <select class="form-select" id="output_uid" name="output_uid">
+          {% if fid_list %}
+          <option value="n/a" selected>N/A</option>
+          {% for fid in fid_list %}
+          <option value={{fid['_id']}}>{{fid['_id']}}</option>
+          {% endfor %}
+          {% else %}
+          <option value="n/a">Spreadsheet not imported yet</option>
+          {% endif %}
+      </select>
+      <span class="input-group-text">Output Type</span>
+      <select class="form-select" id="output_type" name="output_type">
+        <option selected>Choose...</option>
+        <option value="porosity_percent">Part Density (%)</option>
+        <option value="uts_mpa">UTS (MPa)</option>
+        <option value="ys_mpa">YS (MPa)</option>
+        <option value="fatigue">Fatigue: {Stress Level (MPa): N Cycles}</option>
+        <option value="comments">Comments/Description</option>
+      </select>
+      <span class="input-group-text">Value</span>
+      <input type="text" name="output_value" class="form-control" id="output_value" placeholder="99.32">
+      <input type="submit" class="btn btn-primary">
+    </div>
+</form>
+
+<br>
+
+
+<h3><a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Build ontologies are generated by uploading Spreadsheet templates. They show the inheritance structure among inputs and outputs.">
+    <i class="bi bi-info-circle-fill"></i></a> Build Ontologies</h3>
+
+{% for j in range(build_uid_list|length) %}
+    {% set graph_url = '/graphs/' + project_id + '/' + j|string %}
+    <h4><a href={{graph_url}} target="_blank" rel="noopener noreferrer"><span class="badge bg-secondary">{{ build_uid_list[j]['_id'] }} <i class="bi bi-box-arrow-up-right"></i></span></a></h4>
+{% endfor %}
+
+<div class="root"></div>
+
 <br>
 <div>
     {% set blockchain_url = '/projects/' + metadata['_id'] + '/blockchain' %}
     <h3><a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="This data comes directly from the Ethereum blockchain. Verify that your downloaded data is unchanged by comparing the MD5 checksums.">
-        <i class="bi bi-info-circle-fill"></i></a> <a href={{blockchain_url}}>View Blockchain Data</a></h3>
-
-
+        <i class="bi bi-info-circle-fill"></i></a> View Blockchain Data <a href={{blockchain_url}} target="_blank" rel="noopener noreferrer"><i class="bi bi-box-arrow-up-right"></i></a></h3>
 </div>
+<br>
 
 <div id="loading"></div>
 
 
+
+
+
+
+
+
 {% endblock %}
+

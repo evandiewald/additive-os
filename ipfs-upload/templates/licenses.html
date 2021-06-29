@@ -18,12 +18,14 @@
                       <th>Licensee</th>
                       <th>Part Checksum</th>
                       <th>Number of Licensed Prints</th>
+                      <th>Etherscan Transaction</th>
                   </tr>
                   <tr>
                       <td>{{ license_list[i]['licensed_by_email'] }}</td>
                       <td>{{ license_list[i]['licensed_to_email'] }}</td>
                       <td>{{ license_list[i]['part_hash'] }}</td>
                       <td>{{ license_list[i]['num_prints'] }}</td>
+                      <td><a href={{license_list[i]['transaction_url']}} target="_blank" rel="noopener noreferrer">View <i class="bi bi-box-arrow-up-right"></i></a></td>
                   </tr>
               </table>
             {% if license_list[i]['prints'] %}
@@ -45,7 +47,7 @@
                     <th>QR Code</th>
                 </tr>
                 {% for j in range(license_list[i]['prints'] | length) %}
-                {% set qr_url = '/licenses/' + i|string() + '/prints/' + j|string() + '/qr' %}
+                {% set qr_url = '/licenses/' + license_list[i]['_id']|string() + '/prints/' + j|string() + '/qr' %}
                 <tr>
                     <td>{{ (j+1)|string() }}</td>
                     <td>{{ license_list[i]['prints'][j]['timestamp_str'] }}</td>

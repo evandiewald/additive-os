@@ -53,7 +53,9 @@ def encrypt_file(filename, cmk_id):
     :param cmk_id: AWS KMS CMK ID or ARN
     :return: True if file was encrypted. Otherwise, False.
     """
-
+    filename.seek(0)
+    file_hash = hashlib.md5(filename.read()).hexdigest()
+    filename.seek(0)
     # Read the entire file into memory
     # try:
     #     file_contents = filename
@@ -74,7 +76,7 @@ def encrypt_file(filename, cmk_id):
     f = Fernet(data_key_plaintext)
     file_contents_encrypted = f.encrypt(filename.read())
     filename.seek(0)
-    file_hash = hashlib.md5(filename.read()).hexdigest()
+
     with open(tempfile.gettempdir() + '/encrypted_file', 'wb') as f:
         f.write(len(data_key_encrypted).to_bytes(NUM_BYTES_FOR_LEN, byteorder='big'))
         f.write(data_key_encrypted)
@@ -141,12 +143,12 @@ def decrypt_file(filename):
     file_contents_decrypted = f.decrypt(file_contents[data_key_encrypted_len:])
 
     # Write the decrypted file contents
-    try:
-        with open(filename + '.decrypted', 'wb') as file_decrypted:
-            file_decrypted.write(file_contents_decrypted)
-    except IOError as e:
-        logging.error(e)
-        return False
+    # try:
+    with open(filename + '.decrypted', 'wb') as file_decrypted:
+        file_decrypted.write(file_contents_decrypted)
+    # except IOError as e:
+    #     logging.error(e)
+    #     return False
 
     # The same security issue described at the end of encrypt_file() exists
     # here, too, i.e., the wish to wipe the data_key_plaintext value from

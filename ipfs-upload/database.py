@@ -170,11 +170,14 @@ def get_filename_mongo(mongo_db, ipfs_hash):
 #     return res
 
 
-def get_project_metadata_mongo(mongo_db, project_id):
+def get_project_metadata_mongo(mongo_db, project_id, active_only=True):
     project_data = mongo_db['project-data']
     files = mongo_db['files']
     metadata = project_data.find_one({"_id": project_id})
-    file_data = files.find({"project_id": project_id})
+    query = {"project_id": project_id}
+    if active_only:
+        query.update({"active": True})
+    file_data = files.find(query)
     file_list = []
     for file in file_data:
         file_list.append(file)
@@ -195,7 +198,7 @@ def get_data_for_flow(mongo_db, project_id):
 def delete_file(mongo_db, ipfs_hash):
     files = mongo_db['files']
     project_id = files.find_one({"ipfs_hash": ipfs_hash}, {"project_id": 1, "filename": 1})
-    files.delete_one( {"ipfs_hash": ipfs_hash})
+    files.update_one( {"ipfs_hash": ipfs_hash}, {"$set": {"active": False}})
     return project_id['project_id'], project_id['filename']
 
 
@@ -250,3 +253,81 @@ def get_print(mongo_db, license_id, print_id):
     data['prints'] = data['prints'][print_id]
     return data
 
+
+def add_build_data(mongodb, build_tree: dict, build_entries: list):
+    build_trees_col = mongodb['build-trees']
+    build_entries_col = mongodb['build-entries']
+    build_trees_col.insert_one(build_tree)
+    build_entries_col.insert_many(build_entries)
+
+
+def get_build_trees(mongodb, projectid):
+    build_trees = mongodb['build-trees']
+    tree_list = []
+    trees = build_trees.find({"project_id": projectid}, {"_id": 1})
+    for tree in trees:
+        tree_list.append(tree)
+    return tree_list
+
+
+def get_tree_by_uid(mongodb, uid):
+    build_trees = mongodb['build-trees']
+    tree = build_trees.find_one({"UID": uid})
+    return tree
+
+
+def get_build_entries(mongodb, query: dict = None, output: dict = None):
+    build_entries = mongodb['build-entries']
+    entry_list = []
+    entries = build_entries.find(query, output)
+    for entry in entries:
+        entry_list.append(entry)
+    return entry_list
+
+
+def update_entry_files(mongodb, uid, file_metadata):
+    build_entries = mongodb['build-entries']
+    query = {"UID": uid}
+    newvalues = {"$push": {"files": file_metadata}}
+    build_entries.update_one(query, newvalues)
+
+
+def update_tree_files(mongodb, uid, file_metadata):
+    build_tree = mongodb['build-trees']
+    res = build_tree.find_one({"Part.UID": uid}, {"Part": 1})
+    if res:
+        for i in range(len(res['Part'])):
+            if res['Part'][i]['UID'] == uid:
+                idx = i
+            else:
+                continue
+        set_value = "Part." + str(idx) + ".files"
+        res = build_tree.update_one({"Part.UID": uid}, {"$push": {set_value: file_metadata}})
+    else:
+        res = build_tree.find_one({"UID": uid}, {"Part": 1})
+        if res:
+            res = build_tree.update_one({"UID": uid}, {"$push": {"files": file_metadata}})
+
+
+def update_entry_output(mongodb, uid, output_type, output_value):
+    build_entries = mongodb['build-entries']
+    query = {"UID": uid}
+    newvalues = {"$set": {output_type: output_value}}
+    build_entries.update_one(query, newvalues)
+
+
+def update_tree_output(mongodb, uid, output_type, output_value):
+    build_tree = mongodb['build-trees']
+    res = build_tree.find_one({"Part.UID": uid}, {"Part": 1})
+    if res:
+        for i in range(len(res['Part'])):
+            if res['Part'][i]['UID'] == uid:
+                idx = i
+            else:
+                continue
+        set_value = "Part." + str(idx) + "." + output_type
+        res = build_tree.update_one({"Part.UID": uid}, {"$set": {set_value: output_value}})
+    else:
+        res = build_tree.find_one({"UID": uid}, {"Part": 1})
+        if res:
+            res = build_tree.update_one({"UID": uid}, {"$set": {output_type: output_value}})

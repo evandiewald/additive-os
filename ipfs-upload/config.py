@@ -23,3 +23,5 @@ WALLET_ADDRESS = '0xA7473C1EbfC719B69cCdc198A4fF260e5F4F2825'
 INFURA_URL = 'https://ropsten.infura.io/v3/6a42361d66974321b128c0a730ccbf7c'
 
 BASE_URL = 'http://localtest.me:8000/'
+
+LICENSE_URL = 'http://18.234.192.164:8000/'

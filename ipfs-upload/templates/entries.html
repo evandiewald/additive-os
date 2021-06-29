@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card my-5 col-9 mx-auto">
+  <h5 class="card-header">Query Build Data</h5>
+  <div class="card-body">
+    <form action="/entries/post" enctype="multipart/form-data" method="post">
+        <div class="my-3 mx-5">
+            <label for="query_dict" class="form-label">MongoDB Query</label>
+            <input id="query_dict" name="query_dict" class="form-control" placeholder="{&quot;Scan Speed&quot;: {&quot;$gt&quot;: 1600}}">
+        </div>
+        <div class="my-3 mx-5">
+            <label for="output_dict" class="form-label">Output</label>
+            <input id="output_dict" name="output_dict" class="form-control" placeholder="{&quot;Hatch spacing&quot;: &quot;1&quot;, &quot;Power&quot;: &quot;1&quot;}">
+        </div>
+        <button type="submit" class="btn btn-primary mx-5">Submit</button>
+    </form>
+  {% if entries_list %}
+<!--      {% for entry in entries_list %}-->
+      <div class="root"></div>
+<!--      {% endfor %}-->
+  {% endif %}
+  </div>
+</div>
+
+
+{% endblock %}

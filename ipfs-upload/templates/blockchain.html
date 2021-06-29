@@ -3,26 +3,41 @@
 {% block content %}
 <div>
 
-        <div class="card my-3 col-5 mx-auto">
+        <div class="card my-3 col-9 mx-auto">
             <h5 class="card-header">Project ID: {{ project_id }}</h5>
           <div class="card-body">
             <p>Project Title: {{ metadata['project_name'] }}</p>
             <p>Owner's Address: {{ blockchain_data[0] }}</p>
             <p><a href={{metadata['transaction_url']}} target="_blank" rel="noopener noreferrer">View Contract Initiation Transaction on Etherscan <i class="bi bi-box-arrow-up-right"></i></a></p>
             <h6>Files:</h6>
-            {% for i in range(files_list|length) %}
-            <p>File name: {{ files_list[i]['filename'] }}</p>
-            <p>File type: {{ files_list[i]['file_type'] }}</p>
-              <p>Part Checksum (Ethereum): <a href={{files_list[i]['transaction_url']}} target="_blank" rel="noopener noreferrer">{{ blockchain_data[1][i] }} <i class="bi bi-box-arrow-up-right"></i></a></p>
-            <p>
-                Part Checksum (Database): {{ files_list[i]['checksum'] }}
-                {% if blockchain_data[1][i] == files_list[i]['checksum'] %}
-                <i class="bi bi-shield-check"></i>
-                {% else %}
-                <i class="bi bi-exclamation-square"></i>
-                {% endif %}
-            </p>
+            <table class="table table-light">
+                <tr>
+                    <th>Filename</th>
+                    <th>File Type</th>
+                    <th>Checksum (Ethereum)</th>
+                    <th>Checksum (Database)</th>
+                    <th style="text-align: center">Match?</th>
+                </tr>
+
+            {% set num_files = blockchain_data[1] | length %}
+            {% set counter = namespace(value=0) %}
+            {% for i in range(files_list | length) %}
+            {% if files_list[i]['transaction_url'] %}
+                <tr>
+                    <td>{{ files_list[i]['filename'] }}</td>
+                    <td>{{ files_list[i]['file_type'] }}</td>
+                    <td><a href={{files_list[i]['transaction_url']}} target="_blank" rel="noopener noreferrer">{{ blockchain_data[1][counter.value] }} <i class="bi bi-box-arrow-up-right"></i></a></td>
+                    <td>{{ files_list[i]['checksum'] }}</td>
+                    {% if blockchain_data[1][counter.value] == files_list[i]['checksum'] %}
+                    <td style="text-align: center"><i class="bi bi-shield-check"></i></td>
+                    {% else %}
+                    <td style="text-align: center"><i class="bi bi-exclamation-square"></i></td>
+                    {% endif %}
+                </tr>
+            {% set counter.value = counter.value + 1 %}
+            {% endif %}
             {% endfor %}
+            </table>
           </div>
         </div>
 

@@ -14,6 +14,9 @@ import requests
 import ethereum
 import time
 import qrcode
+from importer import BuildData
+import ontology
+import pytz
 
 from pydantic import BaseModel
 import pymongo
@@ -212,6 +215,7 @@ async def login(request: Request):
 @app.post("/token", response_model=Token)
 async def route_login_access_token(username: str = Form(...), password: str = Form(...)):
     # user = database.authenticated(users_table, username, password)
+
     user = database.authenticated(mongo_db, username, password)
     if not user:
         RedirectResponse(url="/signup")
@@ -324,14 +328,19 @@ async def upload(project_id, request: Request, current_user: User = Depends(get_
     # metadata = database.get_project_metadata(projects_table, project_id)
 
     metadata, file_data = database.get_project_metadata_mongo(mongo_db, project_id)
+    try:
+        build_uid_list = database.get_build_trees(mongo_db, project_id)
+    except IndexError:
+        build_uid_list = []
     action_url = "/projects/update/" + project_id
     metadata_update_url = "/update/metadata/" + project_id
     download_urls = []
     for file in file_data:
         download_urls.append('/files/'+file['ipfs_hash'])
+    fid_list = database.get_build_entries(mongo_db, {"project_id": project_id}, {"_id": 1})
     return templates.TemplateResponse("upload.html", {"request": request, "metadata": metadata, "file_data": file_data,
-                                                      "action_url": action_url, "download_urls": download_urls,
-                                                      "metadata_update_url": metadata_update_url})
+                                                      "action_url": action_url, "download_urls": download_urls, "build_uid_list": build_uid_list,
+                                                      "metadata_update_url": metadata_update_url, "project_id": project_id, "fid_list": fid_list})
 
 
 @app.get("/projects/{project_id}/blockchain", response_class=HTMLResponse)
@@ -340,7 +349,7 @@ async def view_blockchain_data(project_id, request: Request):
         # blockchain_data = flow.getMetadata(project_id)
         blockchain_data = ethereum.get_project(int(project_id))
         print(blockchain_data)
-        metadata, file_list = database.get_project_metadata_mongo(mongo_db, project_id)
+        metadata, file_list = database.get_project_metadata_mongo(mongo_db, project_id, active_only=False)
     except json.decoder.JSONDecodeError:
         blockchain_data = None
     return templates.TemplateResponse("blockchain.html", {"request": request, "blockchain_data": blockchain_data, "metadata": metadata, "files_list": file_list, "project_id": project_id})
@@ -355,29 +364,31 @@ async def view_project(project_id, request: Request):
 
 @app.post("/projects/update/{project_id}")
 async def import_file_post(project_id, files: Optional[UploadFile] = File(...), data_type: str = Form(...),
-                           remotepin: bool = Form(False), current_user: User = Depends(get_current_active_user)):
+                           remotepin: bool = Form(False), toblockchain: bool = Form(False), fid: Optional[str] = Form(None), current_user: User = Depends(get_current_active_user)):
     if files.filename is not '':
         print(data_type)
         if data_type is 'none':
             print("error!")
             return {"Error": "You must specify a data type."}
+
         myFile = files.file
         checksum = encryption.encrypt_file(myFile, config.CMK_ID)
         print('FILE CHECKSUM : ', checksum)
         if remotepin is False:
-            try:
+            # try:
                 res = client.add(tempfile.gettempdir() + '/encrypted_file')
                 fileHash = res['Hash']
                 print(fileHash)
-            except ipfshttpclient.exceptions.ConnectionError:
-                res = pin_to_pinata(myFile, files.filename)
-                fileHash = res['IpfsHash']
-                print(fileHash)
+            # except ipfshttpclient.exceptions.ConnectionError:
+            #     res = pin_to_pinata(myFile, files.filename)
+            #     fileHash = res['IpfsHash']
+            #     print(fileHash)
                 # return {"Error": "error adding file to IPFS"}
         else:
-            res = pin_to_pinata(myFile, files.filename)
-            fileHash = res['IpfsHash']
-            print(fileHash)
+            # res = pin_to_pinata(myFile, files.filename)
+            # fileHash = res['IpfsHash']
+            # print(fileHash)
+            raise({"UnimplementedFeatureError": "Remote pinning is not optimal yet."})
 
         from_path = '/ipfs/' + fileHash
         try:
@@ -391,8 +402,21 @@ async def import_file_post(project_id, files: Optional[UploadFile] = File(...), 
             "file_type": data_type,
             "filename": files.filename,
             "ipfs_hash": res['Hash'],
-            "checksum": checksum
+            "checksum": checksum,
+            "FID": fid,
+            "active": True
         }
+        if fid != 'n/a':
+            files_dict.update({"UID": fid + '.' + checksum[:6]})
+        else:
+            files_dict.update({"UID": ''})
+        if data_type == 'spreadsheet':
+            data_obj = BuildData(files.file, files.filename, project_id)
+            build_entries_list = data_obj.entries
+            build_data = data_obj.data
+            database.add_build_data(mongo_db, build_data, build_entries_list)
+
+
 
     else:
         files_dict = []
@@ -406,12 +430,20 @@ async def import_file_post(project_id, files: Optional[UploadFile] = File(...), 
     # database.update_project(projects_table, project_id, metadata)
 
     if files_dict:
-        # files_data = database.get_data_for_flow(mongo_db, project_id)
-        # flow.updateProject(project_id, str(files_data))
-        res = ethereum.add_hash(int(project_id), checksum)
-        transaction_url = 'https://ropsten.etherscan.io/tx/' + res['transactionHash']
-        files_dict['transaction_url'] = transaction_url
+        if toblockchain:
+            # files_data = database.get_data_for_flow(mongo_db, project_id)
+            # flow.updateProject(project_id, str(files_data))
+            res = ethereum.add_hash(int(project_id), checksum)
+            transaction_url = 'https://ropsten.etherscan.io/tx/' + res['transactionHash']
+            files_dict['transaction_url'] = transaction_url
+        else:
+            files_dict['transaction_url'] = ''
+        if fid:
+            database.update_entry_files(mongo_db, fid, files_dict)
+            database.update_tree_files(mongo_db, fid, files_dict)
     database.update_project_mongo(mongo_db, project_id, metadata, files_dict)
+
+
     return RedirectResponse("/projects/"+project_id+"/view")
 
 
@@ -432,13 +464,16 @@ async def update_metadata(project_id, project_name: str = Form(...), user_list: 
 @app.get("/projects", response_class=HTMLResponse)
 async def list_my_projects(request: Request, current_user: User = Depends(get_current_active_user)):
     project_list = database.get_projects_mongo(mongo_db, current_user['username'])
+    for project in project_list:
+        d = datetime.fromisoformat(project['last_updated']).replace(tzinfo=pytz.utc)
+        project['last_updated'] = d.astimezone(pytz.timezone('US/Eastern')).strftime('%d-%m-%Y %I:%M %p')
     return templates.TemplateResponse("projects.html", {"request": request, "project_list": project_list})
 
 
-@app.get("/projects/{projectId}")
-async def project_metadata(projectId):
-    # return flow.getMetadata(projectId)
-    return ethereum.get_project(int(projectId))
+# @app.get("/projects/{projectId}")
+# async def project_metadata(projectId):
+#     # return flow.getMetadata(projectId)
+#     return ethereum.get_project(int(projectId))
 
 
 @app.get("/projects/flow/new")
@@ -454,23 +489,23 @@ async def new_project(current_user: User = Depends(get_current_active_user)):
 @app.get("/files/{ipfs_hash}")
 async def download_and_decrypt(ipfs_hash):
     new_name = database.get_filename_mongo(mongo_db, ipfs_hash)
-    try:
-        tempfilepath = tempfile.gettempdir() + '/amblockchainfiles'
-        client.get(ipfs_hash, tempfilepath)
-        tempfilepath = tempfile.gettempdir() + '/amblockchainfiles/' + ipfs_hash
-        encryption.decrypt_file(tempfilepath)
+    # try:
+    tempfilepath = tempfile.gettempdir() + '/amblockchainfiles'
+    client.get(ipfs_hash, tempfilepath)
+    tempfilepath = tempfile.gettempdir() + '/amblockchainfiles/' + ipfs_hash
+    encryption.decrypt_file(tempfilepath)
 
-    except:
-        res = requests.get('https://gateway.pinata.cloud/ipfs/' + ipfs_hash)
-        tempfilepath = config.DOWNLOADS_FOLDER + ipfs_hash
-        with open(tempfilepath, 'wb') as f:
-            f.write(res['content'])
-        print('File written')
-        encryption.decrypt_file(tempfilepath)
-        print('File decrypted')
+    # except:
+    #     res = requests.get('https://gateway.pinata.cloud/ipfs/' + ipfs_hash)
+    #     tempfilepath = config.DOWNLOADS_FOLDER + ipfs_hash
+    #     with open(tempfilepath, 'wb') as f:
+    #         f.write(res['content'])
+    #     print('File written')
+    #     encryption.decrypt_file(tempfilepath)
+    #     print('File decrypted')
     copyfile(tempfilepath + '.decrypted', config.DOWNLOADS_FOLDER + new_name)
     # dest = tempfile.gettempdir() + '/amblockchainfiles/' + new_name
-    os.remove(tempfilepath + '.decrypted')
+    # os.remove(tempfilepath + '.decrypted')
     # return FileResponse(tempfilepath + '.decrypted', media_type='application/octet-stream', filename=new_name)
     return RedirectResponse('/projects')
 
@@ -620,7 +655,8 @@ async def view_print_license_info(request: Request, license_id, print_id):
 async def download_qr(request: Request, license_id, print_id):
     tempfilepath = tempfile.gettempdir() + '/qr.png'
 
-    url = config.BASE_URL + "licenses/" + license_id + "/prints/" + print_id
+    # url = config.BASE_URL + "licenses/" + license_id + "/prints/" + print_id
+    url = config.LICENSE_URL + "licenses/" + license_id + "/prints/" + print_id
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
     qr.add_data(url)
     qr.make(fit=True)
@@ -628,3 +664,52 @@ async def download_qr(request: Request, license_id, print_id):
     img = qr.make_image(fill='black', back_color='white')
     img.save(tempfilepath)
     return FileResponse(tempfilepath, media_type='application/octet-stream', filename='license_' + license_id + "_print_" + print_id + '.png')
+
+
+@app.post("/entries/post")
+async def query_entries(request: Request, query_dict: Optional[str] = Form(None), output_dict: Optional[str] = Form(None)):
+    try:
+        query = json.loads(query_dict)
+    except TypeError:
+        query = None
+    try:
+        output = json.loads(output_dict)
+    except TypeError:
+        output = None
+    entries_list = database.get_build_entries(mongo_db, query, output)
+    return templates.TemplateResponse("entries.html", {"request": request, "entries_list": entries_list})
+    # return RedirectResponse("/entries/"+str(query_dict)+'/'+str(output_dict))
+
+
+@app.route("/entries/{query}/{output}", methods=["GET", "POST"])
+async def view_entries(request: Request, query, output):
+    try:
+        entries_list = database.get_build_entries(mongo_db, json.loads(query), json.loads(output))
+    except KeyError:
+        entries_list = database.get_build_entries(mongo_db, query, output)
+    return templates.TemplateResponse("entries.html", {"request": request, "entries_list": entries_list})
+
+
+@app.get("/entries/", response_class=HTMLResponse)
+async def entries_form(request: Request):
+    return templates.TemplateResponse("entries.html", {"request": request})
+
+
+@app.get("/graphs/{project_id}/{tree_idx}", response_class=HTMLResponse)
+async def create_graph(request: Request, project_id, tree_idx):
+    ontology.visualize_tree(mongo_db, project_id, int(tree_idx))
+    return templates.TemplateResponse("graph.html", {"request": request})
+
+
+@app.post("/outputs/{project_id}")
+async def update_output(project_id, output_uid: str = Form(...), output_type: str = Form(...), output_value: str = Form(...)):
+    database.update_entry_output(mongo_db, output_uid, output_type, output_value)
+    database.update_tree_output(mongo_db, output_uid, output_type, output_value)
+    return RedirectResponse("/projects/" + project_id + "/view")
+
+
+@app.post("/postprocess/{project_id}")
+async def update_postprocessing(project_id, postprocess_uid: str = Form(...), postprocess_type: str = Form(...), postprocess_value: str = Form(...)):
+    database.update_entry_output(mongo_db, postprocess_uid, postprocess_type, postprocess_value)
+    database.update_tree_output(mongo_db, postprocess_uid, postprocess_type, postprocess_value)
+    return RedirectResponse("/projects/" + project_id + "/view")
