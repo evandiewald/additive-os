@@ -330,7 +330,7 @@ async def read_users_me(request: Request, current_user: User = Depends(get_curre
 
 @app.get("/users/me/items/")
 async def read_own_items(current_user: User = Depends(get_current_active_user)):
-    return [{"item_id": "Foo", "owner": current_user['username']}]
+    return [{"item_id": "Foo", "owner": current_user.username}]
 
 
 @app.post("/newuser/")
@@ -424,9 +424,9 @@ async def import_file_post(project_id, files: Optional[UploadFile] = File(...), 
 
         # authenticated boto3 session
         auth_session = boto3.Session(
-            aws_access_key_id=current_user['AccessKeyId'],
-            aws_secret_access_key=current_user['SecretKey'],
-            aws_session_token=current_user['SessionToken']
+            aws_access_key_id=current_user.AccessKeyId,
+            aws_secret_access_key=current_user.SecretKeyId,
+            aws_session_token=current_user.SessionToken
         )
 
         myFile = files.file
@@ -520,7 +520,7 @@ async def update_metadata(project_id, project_name: str = Form(...), user_list: 
 
 @app.get("/projects", response_class=HTMLResponse)
 async def list_my_projects(request: Request, current_user: User = Depends(get_current_active_user)):
-    project_list = database.get_projects_mongo(mongo_db, current_user['username'])
+    project_list = database.get_projects_mongo(mongo_db, current_user.username)
     for project in project_list:
         d = datetime.fromisoformat(project['last_updated']).replace(tzinfo=pytz.utc)
         project['last_updated'] = d.astimezone(pytz.timezone('US/Eastern')).strftime('%d-%m-%Y %I:%M %p')
@@ -530,9 +530,9 @@ async def list_my_projects(request: Request, current_user: User = Depends(get_cu
 @app.get("/projects/flow/new")
 async def new_project(current_user: User = Depends(get_current_active_user)):
     # flow.newProject()
-    res = ethereum.add_project(current_user['address'])
+    res = ethereum.add_project(current_user.address)
     transaction_url = 'https://ropsten.etherscan.io/tx/' + res['transactionHash']
-    new_project_id = database.init_project(mongo_db, current_user['username'], transaction_url)
+    new_project_id = database.init_project(mongo_db, current_user.username, transaction_url)
     print("/projects/"+new_project_id+"/view")
     return RedirectResponse("/projects/"+new_project_id+"/view")
 
@@ -547,9 +547,9 @@ async def download_and_decrypt(ipfs_hash, current_user: User = Depends(get_curre
 
     # authenticated boto3 session
     auth_session = boto3.Session(
-        aws_access_key_id=current_user['AccessKeyId'],
-        aws_secret_access_key=current_user['SecretKey'],
-        aws_session_token=current_user['SessionToken']
+        aws_access_key_id=current_user.AccessKeyId,
+        aws_secret_access_key=current_user.SecretKeyId,
+        aws_session_token=current_user.SessionToken
     )
 
     encryption.decrypt_file(tempfilepath, auth_session)
@@ -639,13 +639,14 @@ async def new_print_form(request: Request, license_id):
 
 @app.get("/licenses/new", response_class=HTMLResponse)
 async def new_print_form(request: Request, current_user: User = Depends(get_current_active_user)):
-    return templates.TemplateResponse("new_license.html", {"request": request, "username": current_user['username'], "address": current_user['address']})
+    return templates.TemplateResponse("new_license.html", {"request": request, "username": current_user.username,
+                                                           "address": current_user.address})
 
 
 @app.post("/licenses/new/post")
 async def new_license(request: Request, licensed_by_address: str = Form(...), licensed_to_address: str = Form(...), numprints: str = Form(...),
                       files: UploadFile = File(...), current_user: User = Depends(get_current_active_user), licensed_to_email: str = Form(...)):
-    licensed_by_email = current_user['username']
+    licensed_by_email = current_user.username
     parthash = hashlib.md5(files.file.read()).hexdigest()
     res = ethereum.add_license(licensed_by_address, licensed_to_address, int(numprints), parthash)
     transaction_hash = res['transactionHash']
