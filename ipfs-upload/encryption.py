@@ -28,7 +28,7 @@ def create_data_key(cmk_id, auth_session, key_spec='AES_256'):
     """
 
     # Create data key
-    kms_client = auth_session.client('kms')
+    kms_client = auth_session.client('kms', region_name='us-east-1')
     try:
         response = kms_client.generate_data_key(KeyId=cmk_id, KeySpec=key_spec)
     except ClientError as e:
@@ -96,7 +96,7 @@ def decrypt_data_key(data_key_encrypted, auth_session):
     """
 
     # Decrypt the data key
-    kms_client = auth_session.client('kms')
+    kms_client = auth_session.client('kms', region_name='us-east-1')
     try:
         response = kms_client.decrypt(CiphertextBlob=data_key_encrypted)
     except ClientError as e:

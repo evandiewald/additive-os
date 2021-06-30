@@ -38,7 +38,6 @@ from starlette.status import HTTP_403_FORBIDDEN
 from starlette.responses import RedirectResponse, Response, JSONResponse, HTMLResponse, FileResponse
 from starlette.requests import Request
 
-from sqlalchemy import Table, Column, String, MetaData, create_engine
 import database
 import flow
 import config
@@ -60,12 +59,6 @@ app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
-
-# Postgres
-db = create_engine(config.DB_CONNECTION_STRING)
-conn = db.connect()
-users_table = tables.users_table(db)
-projects_table = tables.projects_table(db)
 
 # MongoDB
 mongo_client = pymongo.MongoClient(config.MONGO_CONNECTION_STRING)
@@ -94,7 +87,7 @@ session = boto3.Session(
     aws_session_token=credentials['SessionToken']
 )
 
-cognito_client = session.client('cognito-identity')
+cognito_client = session.client('cognito-identity', region_name='us-east-1')
 
 
 class Token(BaseModel):

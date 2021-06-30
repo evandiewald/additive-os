@@ -1,7 +1,4 @@
 import config
-# import psycopg2
-# import sqlalchemy
-# from sqlalchemy import Table, Column, String, MetaData, func
 import hashlib
 import json
 import pymongo
