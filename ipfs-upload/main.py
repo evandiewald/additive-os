@@ -10,6 +10,7 @@ from shutil import copyfile
 import jwt
 from jwt import PyJWTError
 import boto3
+import botocore
 import requests
 import ethereum
 import time
@@ -20,6 +21,7 @@ import pytz
 
 from pydantic import BaseModel
 import pymongo
+from pycognito import Cognito
 
 from fastapi import Depends, FastAPI, HTTPException, Form, File, UploadFile
 from fastapi.encoders import jsonable_encoder
@@ -76,6 +78,25 @@ except ipfshttpclient.exceptions.ConnectionError:
     print('No IPFS instance found. Running in remote mode.')
 
 
+# get base credentials for access to cognito
+payload = {}
+files = {}
+headers = {
+  'x-api-key': config.CREDENTIALS_API_KEY
+}
+
+res = requests.request("GET", config.CREDENTIALS_API_URL, headers=headers, data=payload, files=files)
+credentials = json.loads(res.json())['body']['Credentials']
+
+session = boto3.Session(
+    aws_access_key_id=credentials['AccessKeyId'],
+    aws_secret_access_key=credentials['SecretAccessKey'],
+    aws_session_token=credentials['SessionToken']
+)
+
+cognito_client = session.client('cognito-identity')
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -88,6 +109,11 @@ class TokenData(BaseModel):
 class User(BaseModel):
     username: str
     name: str
+    address: str
+    AccessKeyId: str
+    SecretKeyId: str
+    SessionToken: str
+    AccessToken: str
 
 
 class UserInDB(User):
@@ -117,7 +143,6 @@ class OAuth2PasswordBearerCookie(OAuth2):
         cookie_scheme, cookie_param = get_authorization_scheme_param(
             cookie_authorization
         )
-
         if header_scheme.lower() == "bearer":
             authorization = True
             scheme = header_scheme
@@ -140,41 +165,18 @@ class OAuth2PasswordBearerCookie(OAuth2):
                 return None
         return param
 
-
-class BasicAuth(SecurityBase):
-    def __init__(self, scheme_name: str = None, auto_error: bool = True):
-        self.scheme_name = scheme_name or self.__class__.__name__
-        self.auto_error = auto_error
-        self.model = SecurityBase()
-
-    async def __call__(self, request: Request) -> Optional[str]:
-        authorization: str = request.headers.get("Authorization")
-        scheme, param = get_authorization_scheme_param(authorization)
-        if not authorization or scheme.lower() != "basic":
-            if self.auto_error:
-                raise HTTPException(
-                    status_code=HTTP_403_FORBIDDEN, detail="Not authenticated"
-                )
-            else:
-                return None
-        return param
-
-
-# basic_auth = BasicAuth(auto_error=True)
-basic_auth = HTTPBasic()
-
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearerCookie(tokenUrl="/token")
 
 
-def create_access_token(*, data: dict, expires_delta: timedelta = None):
+def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
+    # to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
@@ -191,8 +193,36 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         token_data = TokenData(username=username)
     except PyJWTError:
         raise credentials_exception
-    # user = database.get_user(users_table, username=token_data.username)
-    user = database.get_user(mongo_db, username=token_data.username)
+    auth_session = boto3.Session(
+        aws_access_key_id=payload.get('AccessKeyId'),
+        aws_secret_access_key=payload.get('SecretKey'),
+        aws_session_token=payload.get('SessionToken')
+    )
+    u = Cognito(
+        user_pool_id=config.USER_POOL_ID,
+        client_id=config.USER_POOL_CLIENT,
+        session=auth_session,
+        access_token=payload.get('AccessToken'),
+        username=username)
+    user_obj = u.get_user()
+    user = {
+        "username": user_obj.username,
+        "address": user_obj.address,
+        "name": user_obj.name,
+        "AccessKeyId": payload.get("AccessKeyId"),
+        "SecretKey": payload.get("SecretKey"),
+        "SessionToken": payload.get("SessionToken"),
+        "AccessToken": payload.get("AccessToken")
+    }
+    user = User(
+        username=user_obj.username,
+        address=user_obj.address,
+        name=user_obj.name,
+        AccessKeyId=payload.get("AccessKeyId"),
+        SecretKeyId=payload.get("SecretKey"),
+        SessionToken=payload.get("SessionToken"),
+        AccessToken=payload.get("AccessToken")
+    )
     if user is None:
         raise credentials_exception
     return user
@@ -207,24 +237,43 @@ async def homepage(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-@app.get("/loginv2", response_class=HTMLResponse)
+@app.get("/login", response_class=HTMLResponse)
 async def login(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
 
-@app.post("/token", response_model=Token)
-async def route_login_access_token(username: str = Form(...), password: str = Form(...)):
-    # user = database.authenticated(users_table, username, password)
+@app.post("/token")
+async def token(username: str = Form(...), password: str = Form(...)):
+    u = Cognito(
+        user_pool_id=config.USER_POOL_ID,
+        client_id=config.USER_POOL_CLIENT,
+        session=session,
+        username=username)
+    u.authenticate(password=password)
 
-    user = database.authenticated(mongo_db, username, password)
-    if not user:
-        RedirectResponse(url="/signup")
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user['username']}, expires_delta=access_token_expires
+    res = cognito_client.get_id(
+        IdentityPoolId=config.IDENTITY_POOL_ID,
+        Logins={
+            config.IDENTITY_LOGIN: u.id_token
+        }
     )
-    token = jsonable_encoder(access_token)
+    credentials = cognito_client.get_credentials_for_identity(
+        IdentityId=res['IdentityId'],
+        Logins={
+            config.IDENTITY_LOGIN: u.id_token
+        }
+    )
 
+    data = {"sub": u.username,
+            "AccessKeyId": credentials['Credentials']['AccessKeyId'],
+            "SecretKey": credentials['Credentials']['SecretKey'],
+            "SessionToken": credentials['Credentials']['SessionToken'],
+            "AccessToken": u.access_token
+            }
+    access_token_expires = timedelta(minutes=60)
+    access_token = create_access_token(data, expires_delta=access_token_expires)
+    # token = access_token
+    token = jsonable_encoder(access_token)
     response = RedirectResponse(url="/login_success")
     response.set_cookie(
         "Authorization",
@@ -235,6 +284,8 @@ async def route_login_access_token(username: str = Form(...), password: str = Fo
         expires=1800,
         samesite='strict'
     )
+
+
     return response
 
 
@@ -250,43 +301,6 @@ async def route_logout_and_remove_cookie():
     return response
 
 
-@app.get("/login")
-async def login_basic(auth: BasicAuth = Depends(basic_auth)):
-    if not auth:
-        response = Response(headers={"WWW-Authenticate": "Basic"}, status_code=401)
-        return response
-
-    try:
-        decoded = base64.b64decode(auth).decode("ascii")
-        username, _, password = decoded.partition(":")
-        user = database.authenticated(users_table, username, password)
-        if not user:
-            raise HTTPException(status_code=400, detail="Incorrect email or password. New User? Sign up at http:localtest.me:8000/signup")
-
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            data={"sub": username}, expires_delta=access_token_expires
-        )
-
-        token = jsonable_encoder(access_token)
-
-        response = RedirectResponse(url="/")
-        response.set_cookie(
-            "Authorization",
-            value=f"Bearer {token}",
-            domain="localtest.me",
-            httponly=True,
-            max_age=1800,
-            expires=1800,
-            samesite='strict'
-        )
-        return response
-
-    except:
-        response = Response(headers={"WWW-Authenticate": "Basic"}, status_code=401)
-        return response
-
-
 @app.get("/openapi.json")
 async def get_open_api_endpoint():
     return JSONResponse(get_openapi(title="FastAPI", version='1.0.0', routes=app.routes))
@@ -298,8 +312,20 @@ async def get_documentation():
 
 
 @app.get("/users/me/", response_model=User)
-async def read_users_me(current_user: User = Depends(get_current_active_user)):
-    return current_user
+async def read_users_me(request: Request, current_user: User = Depends(get_current_active_user)):
+    user_data = dict(current_user)
+    return templates.TemplateResponse("user_data.html", {"request": request, "user_data": user_data})
+
+
+# TODO: update user data (name/address only)
+# @app.post("/users/me/update")
+# async def update_user(username: str = Form(...), name: str = Form(...), address: str = Form(...)):
+#     u = Cognito(
+#         user_pool_id=config.USER_POOL_ID,
+#         client_id=config.USER_POOL_CLIENT,
+#         session=session,
+#         username=username,
+#         access_token=)
 
 
 @app.get("/users/me/items/")
@@ -308,13 +334,38 @@ async def read_own_items(current_user: User = Depends(get_current_active_user)):
 
 
 @app.post("/newuser/")
-async def new_user(username: str = Form(...), password: str = Form(...), name: str = Form(...), address: str = Form(...)):
+async def new_user(request: Request, username: str = Form(...), password: str = Form(...), name: str = Form(...),
+                   address: str = Form(...)):
     try:
         # database.add_user(users_table, username, password, name)
-        database.add_user(mongo_db, username, password, name, address)
-        return RedirectResponse("/loginv2")
+        # database.add_user(mongo_db, username, password, name, address)
+        u = Cognito(
+            user_pool_id=config.USER_POOL_ID,
+            client_id=config.USER_POOL_CLIENT,
+            session=session
+        )
+        u.set_base_attributes(email=username, name=name, address=address)
+        u.register(username, password)
+        return templates.TemplateResponse("validate_confirmation_code.html", {"request": request, "username": username})
     except:
         return JSONResponse({"Error": 400, "message": "User with this email address already exists. Please login or reset your password."})
+
+
+@app.post("/validate")
+async def confirm_code(username: str = Form(...), code: str = Form(...)):
+    u = Cognito(
+        user_pool_id=config.USER_POOL_ID,
+        client_id=config.USER_POOL_CLIENT,
+        session=session
+    )
+    u.confirm_sign_up(code, username)
+    return RedirectResponse("/")
+
+
+@app.get("/validate_form", response_class=HTMLResponse)
+async def validate_form(request: Request, current_user: User = Depends(get_current_active_user)):
+    print(current_user)
+    return templates.TemplateResponse("validate_reset_code.html", {"request": request})
 
 
 @app.get("/signup/", response_class=HTMLResponse)
@@ -371,8 +422,15 @@ async def import_file_post(project_id, files: Optional[UploadFile] = File(...), 
             print("error!")
             return {"Error": "You must specify a data type."}
 
+        # authenticated boto3 session
+        auth_session = boto3.Session(
+            aws_access_key_id=current_user['AccessKeyId'],
+            aws_secret_access_key=current_user['SecretKey'],
+            aws_session_token=current_user['SessionToken']
+        )
+
         myFile = files.file
-        checksum = encryption.encrypt_file(myFile, config.CMK_ID)
+        checksum = encryption.encrypt_file(myFile, config.CMK_ID, auth_session)
         print('FILE CHECKSUM : ', checksum)
         if remotepin is False:
             # try:
@@ -449,7 +507,6 @@ async def import_file_post(project_id, files: Optional[UploadFile] = File(...), 
 
 @app.post("/update/metadata/{project_id}")
 async def update_metadata(project_id, project_name: str = Form(...), user_list: Optional[str] = Form(None)):
-    print('got here')
     metadata = {
         "_id": project_id,
         "project_name": project_name,
@@ -470,12 +527,6 @@ async def list_my_projects(request: Request, current_user: User = Depends(get_cu
     return templates.TemplateResponse("projects.html", {"request": request, "project_list": project_list})
 
 
-# @app.get("/projects/{projectId}")
-# async def project_metadata(projectId):
-#     # return flow.getMetadata(projectId)
-#     return ethereum.get_project(int(projectId))
-
-
 @app.get("/projects/flow/new")
 async def new_project(current_user: User = Depends(get_current_active_user)):
     # flow.newProject()
@@ -487,26 +538,23 @@ async def new_project(current_user: User = Depends(get_current_active_user)):
 
 
 @app.get("/files/{ipfs_hash}")
-async def download_and_decrypt(ipfs_hash):
+async def download_and_decrypt(ipfs_hash, current_user: User = Depends(get_current_active_user)):
     new_name = database.get_filename_mongo(mongo_db, ipfs_hash)
     # try:
     tempfilepath = tempfile.gettempdir() + '/amblockchainfiles'
     client.get(ipfs_hash, tempfilepath)
     tempfilepath = tempfile.gettempdir() + '/amblockchainfiles/' + ipfs_hash
-    encryption.decrypt_file(tempfilepath)
 
-    # except:
-    #     res = requests.get('https://gateway.pinata.cloud/ipfs/' + ipfs_hash)
-    #     tempfilepath = config.DOWNLOADS_FOLDER + ipfs_hash
-    #     with open(tempfilepath, 'wb') as f:
-    #         f.write(res['content'])
-    #     print('File written')
-    #     encryption.decrypt_file(tempfilepath)
-    #     print('File decrypted')
+    # authenticated boto3 session
+    auth_session = boto3.Session(
+        aws_access_key_id=current_user['AccessKeyId'],
+        aws_secret_access_key=current_user['SecretKey'],
+        aws_session_token=current_user['SessionToken']
+    )
+
+    encryption.decrypt_file(tempfilepath, auth_session)
+
     copyfile(tempfilepath + '.decrypted', config.DOWNLOADS_FOLDER + new_name)
-    # dest = tempfile.gettempdir() + '/amblockchainfiles/' + new_name
-    # os.remove(tempfilepath + '.decrypted')
-    # return FileResponse(tempfilepath + '.decrypted', media_type='application/octet-stream', filename=new_name)
     return RedirectResponse('/projects')
 
 
@@ -550,53 +598,26 @@ async def reset_password_page(request: Request):
 
 @app.post("/reset_password/reset")
 async def send_reset_code(request: Request, username: str = Form(...)):
-    reset_code = str(random.randrange(0, 999999)).zfill(6)
-    code_hash = hashlib.sha256(bytes(reset_code, encoding='utf8')).hexdigest()
-    expiration = datetime.now() + timedelta(minutes=5)
-    email_template = """<!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <title>AM Blockchain Password Reset</title>
-        </head>
-        <body>
-        
-        <p>Your password reset code is {}.</p>
-        
-        </body>
-        </html>""".format(reset_code)
+    u = Cognito(
+        user_pool_id=config.USER_POOL_ID,
+        client_id=config.USER_POOL_CLIENT,
+        session=session,
+        username=username)
+    u.initiate_forgot_password()
 
-    ses_client = boto3.client('sesv2')
-    response = ses_client.send_email(FromEmailAddress='do-not-reply@amrepository.com',
-                                 FromEmailAddressIdentityArn='arn:aws:ses:us-east-1:668146110194:identity/amrepository.com',
-                                 Destination={
-                                     'ToAddresses': [username]
-                                 },
-                                 Content={
-                                     'Simple': {
-                                         'Subject': {
-                                             'Data': 'Password reset requested for AM Blockchain'
-                                         },
-                                         'Body': {
-                                             'Html': {
-                                                 'Data': email_template
-                                             }
-                                         }
-                                     }
-                                 })
-    return templates.TemplateResponse("validate_reset_code.html", {"request": request, "code_hash": code_hash, "expiration": expiration.isoformat(), "username": username})
+    return templates.TemplateResponse("validate_reset_code.html", {"request": request, "username": username})
 
 
 @app.post("/reset_password/verify")
-async def enter_reset_code(request: Request, code_hash: str = Form(...), expiration: str = Form(...), code: str = Form(...), username: str = Form(...)):
-    submitted_code_hash = hashlib.sha256(bytes(code, encoding='utf8')).hexdigest()
-    if datetime.now() > datetime.fromisoformat(expiration):
-        return JSONResponse({"status": 400, "message": "Code expired"})
-    elif submitted_code_hash != code_hash:
-        return JSONResponse({"status": 400, "message": "Invalid code"})
-    else:
-        print('Success')
-        return templates.TemplateResponse("update_password.html", {"request": request, "username": username})
+async def enter_reset_code(request: Request, new_password: str = Form(...), code: str = Form(...), username: str = Form(...)):
+    u = Cognito(
+        user_pool_id=config.USER_POOL_ID,
+        client_id=config.USER_POOL_CLIENT,
+        session=session,
+        username=username)
+    u.confirm_forgot_password(code, password=new_password)
+
+    return RedirectResponse("/")
 
 
 @app.post("/update_password")

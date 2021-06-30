@@ -7,15 +7,14 @@
     <form action="/reset_password/verify" enctype="multipart/form-data" method="post">
         <div class="my-3 mx-5">
             <p>Please enter the code that was sent to your email address. Make sure to check your spam folder.</p>
+            <label for="username" class="form-label">Username</label>
+            <input id="username" name="username" class="form-control" value={{ username }} readonly>
             <label for="code" class="form-label">Reset Code</label>
             <input id="code" name="code" class="form-control" required>
+            <label for="new_password" class="form-label">New Password</label>
+            <input id="new_password" name="new_password" class="form-control" type="password" required>
         </div>
-        <div class="my-3 mx-5">
-            <input id="code_hash" name="code_hash" class="form-control" value={{ code_hash }} hidden=True>
-            <input id="expiration" name="expiration" class="form-control" value={{ expiration }} hidden=True>
-            <input id="username" name="username" class="form-control" value={{ username }} hidden=True>
-        </div>
-        <button type="submit" class="btn btn-primary mx-5">Confirm</button>
+        <button type="submit" class="btn btn-primary mx-5">Update Password</button>
     </form>
   </div>
 </div>

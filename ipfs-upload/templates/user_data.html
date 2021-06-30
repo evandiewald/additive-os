@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card my-3 col-6 mx-auto">
+  <h5 class="card-header">Profile</h5>
+  <div class="card-body">
+    <form action="#" enctype="multipart/form-data" method="post">
+        <div class="my-3 mx-5">
+            <label for="username" class="form-label">Email</label>
+            <input id="username" name="username" class="form-control" value={{ user_data['username'] }} readonly>
+            <label for="name" class="form-label">Name</label>
+            <input id="name" name="name" class="form-control" value={{ user_data['name'] }} readonly>
+            <label for="address" class="form-label">ETH Wallet Address</label>
+            <input id="address" name="address" class="form-control" value={{ user_data['address'] }} readonly>
+
+        </div>
+        <button type="submit" class="btn btn-primary mx-5" disabled>Edit</button>
+    </form>
+  </div>
+</div>
+
+
+{% endblock %}

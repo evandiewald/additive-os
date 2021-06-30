@@ -13,7 +13,7 @@ cmk_id = config.CMK_ID
 NUM_BYTES_FOR_LEN = 8
 
 
-def create_data_key(cmk_id, key_spec='AES_256'):
+def create_data_key(cmk_id, auth_session, key_spec='AES_256'):
     """Generate a data key to use when encrypting and decrypting data
 
     :param cmk_id: KMS CMK ID or ARN under which to generate and encrypt the
@@ -28,7 +28,7 @@ def create_data_key(cmk_id, key_spec='AES_256'):
     """
 
     # Create data key
-    kms_client = boto3.client('kms')
+    kms_client = auth_session.client('kms')
     try:
         response = kms_client.generate_data_key(KeyId=cmk_id, KeySpec=key_spec)
     except ClientError as e:
@@ -39,7 +39,7 @@ def create_data_key(cmk_id, key_spec='AES_256'):
     return response['CiphertextBlob'], base64.b64encode(response['Plaintext'])
 
 
-def encrypt_file(filename, cmk_id):
+def encrypt_file(filename, cmk_id, auth_session):
     """Encrypt a file using an AWS KMS CMK
 
     A data key is generated and associated with the CMK.
@@ -67,7 +67,7 @@ def encrypt_file(filename, cmk_id):
     # The data key is used to encrypt the file. Each file can use its own
     # data key or data keys can be shared among files.
     # Specify either the CMK ID or ARN
-    data_key_encrypted, data_key_plaintext = create_data_key(cmk_id)
+    data_key_encrypted, data_key_plaintext = create_data_key(cmk_id, auth_session)
     if data_key_encrypted is None:
         return False
     logging.info('Created new AWS KMS data key')
@@ -86,16 +86,17 @@ def encrypt_file(filename, cmk_id):
     return file_hash
 
 
-def decrypt_data_key(data_key_encrypted):
+def decrypt_data_key(data_key_encrypted, auth_session):
     """Decrypt an encrypted data key
 
+    :param auth_session:
     :param data_key_encrypted: Encrypted ciphertext data key.
     :return Plaintext base64-encoded binary data key as binary string
     :return None if error
     """
 
     # Decrypt the data key
-    kms_client = boto3.client('kms')
+    kms_client = auth_session.client('kms')
     try:
         response = kms_client.decrypt(CiphertextBlob=data_key_encrypted)
     except ClientError as e:
@@ -106,7 +107,7 @@ def decrypt_data_key(data_key_encrypted):
     return base64.b64encode((response['Plaintext']))
 
 
-def decrypt_file(filename):
+def decrypt_file(filename, auth_session):
     """Decrypt a file encrypted by encrypt_file()
 
     The encrypted file is read from <filename>.encrypted
@@ -134,7 +135,7 @@ def decrypt_file(filename):
     data_key_encrypted = file_contents[NUM_BYTES_FOR_LEN:data_key_encrypted_len]
 
     # Decrypt the data key before using it
-    data_key_plaintext = decrypt_data_key(data_key_encrypted)
+    data_key_plaintext = decrypt_data_key(data_key_encrypted, auth_session)
     if data_key_plaintext is None:
         return False
 
