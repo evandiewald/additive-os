@@ -6,8 +6,9 @@ import json
 
 AM_License_contract_address = config.AMLICENSE_CONTRACT_ADDRESS
 AM_Project_contract_address = config.AMPROJECT_CONTRACT_ADDRESS
-wallet_private_key = config.WALLET_PRIVATE_KEY
-wallet_address = config.WALLET_ADDRESS
+# wallet_private_key = config.WALLET_PRIVATE_KEY
+# wallet_address = config.WALLET_ADDRESS
+
 
 infura_url = config.INFURA_URL
 
@@ -75,7 +76,7 @@ def get_print(_licenseid: int, _printid: int):
     return AMLicense_contract.functions.getPrint(_licenseid, _printid).call()
 
 
-def add_license(_licensedby: str, _licensedto: str, _numprints: int, _parthash: str):
+def add_license(_licensedby: str, _licensedto: str, _numprints: int, _parthash: str, wallet_address=None, wallet_private_key=None):
     """Function in the AMLicense contract to initiate a new license.
 
     As a transaction, this function requires gas fees. You may need to adjust the gas limit in the txn_dict line below
@@ -89,40 +90,29 @@ def add_license(_licensedby: str, _licensedto: str, _numprints: int, _parthash: 
     Returns:
         If successful, a dict containing the transactionHash. Otherwise, a timeout error.
     """
-    nonce = w3.eth.getTransactionCount(wallet_address)
-    txn_dict = AMLicense_contract.functions.addLicense(_licensedby, _licensedto, _numprints, _parthash).buildTransaction({
-        'chainId': 3,
-        'gas': 2000000,
-        'gasPrice': w3.toWei('1', 'gwei'),
-        'nonce': nonce,
-    })
 
-    signed_txn = w3.eth.account.signTransaction(txn_dict, private_key=wallet_private_key)
+    if wallet_address and wallet_private_key:
 
-    result = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+        nonce = w3.eth.getTransactionCount(wallet_address)
+        txn_dict = AMLicense_contract.functions.addLicense(_licensedby, _licensedto, _numprints, _parthash).buildTransaction({
+            'chainId': 3,
+            'gas': 2000000,
+            'gasPrice': w3.toWei('1', 'gwei'),
+            'nonce': nonce,
+        })
 
-    tx_receipt = None
-
-    count = 0
-    while tx_receipt is None and (count < 30):
-        try:
-            time.sleep(10)
-
-            tx_receipt = w3.eth.getTransactionReceipt(result)
-
-            print(tx_receipt)
-        except:
-            tx_receipt = None
-            count += 1
+        res = sign_and_send_transaction(txn_dict, wallet_private_key)
+        return res
+    else:
+        txn_dict = AMLicense_contract.functions.addLicense(_licensedby, _licensedto, _numprints, _parthash).buildTransaction({
+            'chainId': 3,
+            'gas': 2000000,
+            'gasPrice': w3.toWei('1', 'gwei')
+        })
+        return txn_dict
 
 
-    if tx_receipt is None:
-        return {'status': 'failed', 'error': 'timeout'}
-
-    return {'status': 'added', 'transactionHash': tx_receipt['transactionHash'].hex()}
-
-
-def add_print(_licenseid: int, _timestamp: int, _operatorid: int, _reporthash: str):
+def add_print(_licenseid: int, _timestamp: int, _operatorid: int, _reporthash: str, wallet_address=None, wallet_private_key=None):
     """Function in the AMLicense contract to log a new print within a certain license.
 
     As a transaction, this function requires gas fees. You may need to adjust the gas limit in the txn_dict line below
@@ -138,37 +128,26 @@ def add_print(_licenseid: int, _timestamp: int, _operatorid: int, _reporthash: s
     Returns:
         If successful, a dict containing the transactionHash. Otherwise, a timeout error.
     """
-    nonce = w3.eth.getTransactionCount(wallet_address)
-    txn_dict = AMLicense_contract.functions.addPrint(_licenseid, _timestamp, _operatorid, _reporthash).buildTransaction({
-        'chainId': 3,
-        'gas': 2000000,
-        'gasPrice': w3.toWei('1', 'gwei'),
-        'nonce': nonce,
-    })
 
-    signed_txn = w3.eth.account.signTransaction(txn_dict, private_key=wallet_private_key)
+    if wallet_private_key and wallet_address:
+        nonce = w3.eth.getTransactionCount(wallet_address)
+        txn_dict = AMLicense_contract.functions.addPrint(_licenseid, _timestamp, _operatorid, _reporthash).buildTransaction({
+            'chainId': 3,
+            'gas': 2000000,
+            'gasPrice': w3.toWei('1', 'gwei'),
+            'nonce': nonce,
+        })
 
-    result = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
-
-    tx_receipt = None
-
-    count = 0
-    while tx_receipt is None and (count < 30):
-        try:
-            time.sleep(10)
-
-            tx_receipt = w3.eth.getTransactionReceipt(result)
-
-            print(tx_receipt)
-        except:
-            tx_receipt = None
-            count += 1
-
-
-    if tx_receipt is None:
-        return {'status': 'failed', 'error': 'timeout'}
-
-    return {'status': 'added', 'transactionHash': tx_receipt['transactionHash'].hex()}
+        res = sign_and_send_transaction(txn_dict, wallet_private_key)
+        return res
+    else:
+        txn_dict = AMLicense_contract.functions.addPrint(_licenseid, _timestamp, _operatorid,
+                                                         _reporthash).buildTransaction({
+            'chainId': 3,
+            'gas': 2000000,
+            'gasPrice': w3.toWei('1', 'gwei')
+        })
+        return txn_dict
 
 
 ## AMProject.sol
@@ -217,7 +196,7 @@ def get_hash(_projectid: int, _fileid: int):
     return AMProject_contract.functions.getHash(_projectid, _fileid).call()
 
 
-def add_project(_author: str):
+def add_project(_author: str, wallet_address=None, wallet_private_key=None):
     """Function in the AMProject contract to initiate a new Project.
 
     When initializing a project, you only need to specify the _author. The files[] array will initialize as empty.
@@ -231,40 +210,29 @@ def add_project(_author: str):
     Returns:
         If successful, a dict containing the transactionHash. Otherwise, a timeout error.
     """
-    nonce = w3.eth.getTransactionCount(wallet_address)
-    txn_dict = AMProject_contract.functions.addProject(_author).buildTransaction({
-        'chainId': 3,
-        'gas': 2000000,
-        'gasPrice': w3.toWei('1', 'gwei'),
-        'nonce': nonce,
-    })
+    if wallet_address and wallet_private_key:
+        nonce = w3.eth.getTransactionCount(wallet_address)
+        txn_dict = AMProject_contract.functions.addProject(_author).buildTransaction({
+            'chainId': 3,
+            'gas': 2000000,
+            'gasPrice': w3.toWei('1', 'gwei'),
+            'nonce': nonce,
+        })
 
-    signed_txn = w3.eth.account.signTransaction(txn_dict, private_key=wallet_private_key)
+        res = sign_and_send_transaction(txn_dict, wallet_private_key)
 
-    result = w3.eth.sendRawTransaction(signed_txn.rawTransaction)
+        return res
 
-    tx_receipt = None
-
-    count = 0
-    while tx_receipt is None and (count < 30):
-        try:
-            time.sleep(10)
-
-            tx_receipt = w3.eth.getTransactionReceipt(result)
-
-            print(tx_receipt)
-        except:
-            tx_receipt = None
-            count += 1
+    else:
+        txn_dict = AMProject_contract.functions.addProject(_author).buildTransaction({
+            'chainId': 3,
+            'gas': 2000000,
+            'gasPrice': w3.toWei('1', 'gwei')
+        })
+        return txn_dict
 
 
-    if tx_receipt is None:
-        return {'status': 'failed', 'error': 'timeout'}
-
-    return {'status': 'added', 'transactionHash': tx_receipt['transactionHash'].hex()}
-
-
-def add_hash(_projectid: int, _checksum: str):
+def add_hash(_projectid: int, _checksum: str, wallet_address=None, wallet_private_key=None):
     """Function in the AMProject contract to associate a verified file hash with a Project.
 
     As a transaction, this function requires gas fees. You may need to adjust the gas limit in the txn_dict line below
@@ -274,17 +242,38 @@ def add_hash(_projectid: int, _checksum: str):
     Args:
         _projectid: The project_id index of the Project to associate the file with.
         _checksum: The MD5 checksum of the verified file.
+        wallet_address: (optional) a wallet to sign the transaction directly, otherwise Metamask will be used.
+        wallet_private_key: (optional) the private key of a signing wallet.
+
 
     Returns:
         If successful, a dict containing the transactionHash. Otherwise, a timeout error.
     """
-    nonce = w3.eth.getTransactionCount(wallet_address)
-    txn_dict = AMProject_contract.functions.addHash(_projectid, _checksum).buildTransaction({
-        'chainId': 3,
-        'gas': 2000000,
-        'gasPrice': w3.toWei('1', 'gwei'),
-        'nonce': nonce,
-    })
+
+    if wallet_private_key and wallet_address:
+
+        nonce = w3.eth.getTransactionCount(wallet_address)
+        txn_dict = AMProject_contract.functions.addHash(_projectid, _checksum).buildTransaction({
+            'chainId': 3,
+            'gas': 2000000,
+            'gasPrice': w3.toWei('1', 'gwei'),
+            'nonce': nonce
+        })
+
+        res = sign_and_send_transaction(txn_dict, wallet_private_key)
+        return res
+
+    else:
+        txn_dict = AMProject_contract.functions.addHash(_projectid, _checksum).buildTransaction({
+            'chainId': 3,
+            'gas': 2000000,
+            'gasPrice': w3.toWei('1', 'gwei')
+            # 'nonce': nonce,
+        })
+        return txn_dict
+
+
+def sign_and_send_transaction(txn_dict, wallet_private_key):
 
     signed_txn = w3.eth.account.signTransaction(txn_dict, private_key=wallet_private_key)
 
@@ -304,8 +293,8 @@ def add_hash(_projectid: int, _checksum: str):
             tx_receipt = None
             count += 1
 
-
     if tx_receipt is None:
         return {'status': 'failed', 'error': 'timeout'}
 
     return {'status': 'added', 'transactionHash': tx_receipt['transactionHash'].hex()}
+

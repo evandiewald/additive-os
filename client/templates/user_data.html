@@ -1,23 +1,53 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="card my-3 col-6 mx-auto">
+
+<div class="card my-3 col-7 mx-auto">
   <h5 class="card-header">Profile</h5>
   <div class="card-body">
-    <form action="#" enctype="multipart/form-data" method="post">
+    <form action="/users/me/update" enctype="multipart/form-data" method="post">
         <div class="my-3 mx-5">
-            <label for="username" class="form-label">Email</label>
-            <input id="username" name="username" class="form-control" value={{ user_data['username'] }} readonly>
-            <label for="name" class="form-label">Name</label>
-            <input id="name" name="name" class="form-control" value={{ user_data['name'] }} readonly>
-            <label for="address" class="form-label">ETH Wallet Address</label>
-            <input id="address" name="address" class="form-control" value={{ user_data['address'] }} readonly>
+            <div class="my-3 mx-5">
+                <label for="username" class="form-label">Email</label>
+                <input id="username" name="username" class="form-control" value="{{ user_data['username'] }}" readonly>
+            </div>
+            <div class="my-3 mx-5">
+                <label for="name" class="form-label">Name</label>
+                <input id="name" name="name" class="form-control" value="{{ user_data['name'] }}">
+            </div>
 
+            <div class="my-3 mx-5">
+                <label for="address" class="form-label">ETH Wallet Address</label>
+                <div class="input-group">
+                    <button type="button" class="enableEthereumButton btn btn-warning">Connect Metamask</button>
+    <!--            <span class="showAccount"></span>-->
+                    <input id="address" name="address" class="form-control" value="{{ user_data['address'] }}" readonly>
+                </div>
+            </div>
+            <button type="submit" class="mx-5 btn btn-primary">Update</button>
         </div>
-        <button type="submit" class="btn btn-primary mx-5" disabled>Edit</button>
     </form>
   </div>
 </div>
 
+{% endblock %}
+
+
+{% block javascript %}
+<script>
+    const ethereumButton = document.querySelector('.enableEthereumButton');
+
+    let accounts = [];
+
+    ethereumButton.addEventListener('click', () => {
+      getAccount();
+    });
+
+    async function getAccount() {
+      const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+      const account = accounts[0];
+      document.getElementById('address').setAttribute("value", account);
+    }
+</script>
 
 {% endblock %}

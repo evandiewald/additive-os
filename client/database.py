@@ -5,6 +5,7 @@ import pymongo
 import flow
 import datetime
 import ethereum
+import time
 
 
 ## users table
@@ -108,17 +109,17 @@ def update_password(mongo_db, username, new_password):
 def update_project_mongo(mongo_db, project_id, metadata, files_dict):
     project_data = mongo_db['project-data']
     files = mongo_db['files']
-    try:
-        project_data.insert_one(metadata)
-    except pymongo.errors.DuplicateKeyError:
+
+    if 'project_name' in metadata and metadata['project_name'] is not None:
         newname = { "$set": {"project_name": metadata['project_name'], "last_updated": metadata['last_updated']} }
         project_data.update_one({"_id": project_id}, newname)
-        if metadata['user_list'] is not None:
-            newuser = {"$push": {"user_list": metadata['user_list']}}
-            project_data.update_one({"_id": project_id}, newuser)
+    if 'user_list' in metadata and metadata['user_list'] is not None:
+        newuser = {"$push": {"user_list": metadata['user_list']}}
+        project_data.update_one({"_id": project_id}, newuser)
     if files_dict:
         files.insert_one(files_dict)
-
+    updatequery = { "$set": {"last_updated": metadata['last_updated']}}
+    project_data.update_one({"_id": project_id}, updatequery)
 
 
 
@@ -194,8 +195,18 @@ def get_data_for_flow(mongo_db, project_id):
 
 def delete_file(mongo_db, ipfs_hash):
     files = mongo_db['files']
+    project_data = mongo_db['project-data']
     project_id = files.find_one({"ipfs_hash": ipfs_hash}, {"project_id": 1, "filename": 1})
     files.update_one( {"ipfs_hash": ipfs_hash}, {"$set": {"active": False}})
+    updatequery = {"$set": {"last_updated": datetime.datetime.utcnow().isoformat()}}
+    project_data.update_one({"_id": project_id}, updatequery)
+    return project_id['project_id'], project_id['filename']
+
+
+def add_transaction_to_file(mongo_db, ipfs_hash, transaction_url):
+    files = mongo_db['files']
+    project_id = files.find_one({"ipfs_hash": ipfs_hash}, {"project_id": 1, "filename": 1})
+    files.update_one({"ipfs_hash": ipfs_hash}, {"$set": {"transaction_url": transaction_url}})
     return project_id['project_id'], project_id['filename']
 
 
@@ -203,14 +214,25 @@ def remove_user(mongo_db, project_id, user):
     project_data = mongo_db['project-data']
     query = { "$pull": { "user_list": user}}
     project_data.update_one({"_id": project_id}, query)
+    updatequery = {"$set": {"last_updated": datetime.datetime.utcnow().isoformat()}}
+    project_data.update_one({"_id": project_id}, updatequery)
+
 
 
 def init_project(mongo_db, user, transaction_url):
     project_data = mongo_db['project-data']
     # init_project_id = str(max(flow.getProjects()['collection']))
-    init_project_id = str(ethereum.get_project_count() - 1)
-    project_data.insert_one({"_id": init_project_id, "user_list": [user], "transaction_url": transaction_url, "project_name": "Untitled Project"})
-    return init_project_id
+    timer = 0
+    while timer < 10:
+        time.sleep(3)
+        init_project_id = str(ethereum.get_project_count() - 1)
+        try:
+            project_data.insert_one({"_id": init_project_id, "user_list": [user], "transaction_url": transaction_url,
+                 "project_name": "Untitled Project"})
+            return init_project_id
+        except pymongo.errors.DuplicateKeyError:
+            timer += 1
+    return {"message": "New Project transaction timed out. Try increasing the gas limit."}
 
 
 def add_license(mongo_db, license_id, transaction_url, num_prints, part_hash, licensed_by_email, licensed_to_email, licensed_by_address, licensed_to_address):

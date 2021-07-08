@@ -90,7 +90,9 @@
           {% endif %}
       </select>
       <input id="files" name="files" type="file" class="form-control" required>
-      <input type="submit" class="btn btn-primary">
+
+      <input type="submit" class="btn btn-primary" onclick="this.form.submit(); this.disabled=true; this.value='Uploading…'; ">
+
     </div>
 
 <!--    <div class="input-group mb-3">-->
@@ -155,7 +157,8 @@
         <option value="machining">Machining</option>
       </select>
       <span class="input-group-text">Details</span>
-      <input type="text" name="postprocess_value" class="form-control" id="postprocess_value" placeholder="2 hours @ 600C">
+
+      <input type="text" name="postprocess_value" class="form-control" id="postprocess_value" placeholder="2 hours @ 600C" required>
       <input type="submit" class="btn btn-primary">
     </div>
 </form>
@@ -181,7 +184,7 @@
           {% endif %}
       </select>
       <span class="input-group-text">Output Type</span>
-      <select class="form-select" id="output_type" name="output_type">
+      <select class="form-select" id="output_type" name="output_type" required>
         <option selected>Choose...</option>
         <option value="porosity_percent">Part Density (%)</option>
         <option value="uts_mpa">UTS (MPa)</option>
@@ -190,7 +193,8 @@
         <option value="comments">Comments/Description</option>
       </select>
       <span class="input-group-text">Value</span>
-      <input type="text" name="output_value" class="form-control" id="output_value" placeholder="99.32">
+      <input type="text" name="output_value" class="form-control" id="output_value" placeholder="99.32" required>
+
       <input type="submit" class="btn btn-primary">
     </div>
 </form>
@@ -216,13 +220,15 @@
 </div>
 <br>
 
-<div id="loading"></div>
+
+<!--<div id="loading"></div>-->
 
 
 
+{% endblock %}
 
 
-
+{% block javascript %}
 
 
 {% endblock %}
