@@ -395,7 +395,7 @@ async def view_project(project_id, request: Request):
 
 
 @app.post("/projects/update/{project_id}")
-async def import_file_post(project_id, files: Optional[UploadFile] = File(...), data_type: str = Form(...),
+async def import_file_post(request: Request, project_id, files: Optional[UploadFile] = File(...), data_type: str = Form(...),
                            remotepin: bool = Form(False), toblockchain: bool = Form(False), fid: Optional[str] = Form(None), current_user: User = Depends(get_current_active_user)):
     if files.filename is not '':
         print(data_type)
