@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<a href="/projects/flow/new" class="btn btn-primary btn-lg my-5"><i class="bi bi-folder-plus"></i> New Project</a>
+<a href="/projects/flow/new" class="btn btn-primary btn-lg my-5" onclick="this.disabled=true;"><i class="bi bi-folder-plus"></i> New Project</a>
 <div>
     <h4>My Projects</h4>
         {% if project_list %}
@@ -36,5 +36,10 @@
         {% endfor %}
         {% endif %}
 </div>
+
+{% endblock %}
+
+
+{% block javascript %}
 
 {% endblock %}

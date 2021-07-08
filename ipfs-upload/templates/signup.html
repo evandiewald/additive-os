@@ -11,7 +11,7 @@
 <!--    <input type="submit">-->
 <!--</form>-->
 
-<div class="card my-3 col-4 mx-auto">
+<div class="card my-3 col-6 mx-auto">
   <h5 class="card-header">Create an account</h5>
   <div class="card-body">
     <form action="/newuser/" enctype="multipart/form-data" method="post" class="form-signin needs-validation">
@@ -25,7 +25,12 @@
         </div>
         <div class="my-3 mx-5">
             <label for="address" class="form-label">ETH Ropsten Testnet Address</label>
-            <input id="address" name="address" class="form-control" required>
+            <div class="input-group">
+                <button class="enableEthereumButton btn btn-warning">Connect Metamask</button>
+<!--            <span class="showAccount"></span>-->
+                <input id="address" name="address" class="form-control showAccount" required readonly>
+            </div>
+
         </div>
         <div class="mb-3 mx-5">
             <label for="password" class="form-label">Password</label>
@@ -38,5 +43,26 @@
 </div>
 
 
+
+{% endblock %}
+
+{% block javascript %}
+<script>
+    const ethereumButton = document.querySelector('.enableEthereumButton');
+    const showAccount = document.querySelector('.showAccount');
+
+    let accounts = [];
+
+    ethereumButton.addEventListener('click', () => {
+      getAccount();
+    });
+
+    async function getAccount() {
+      const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+      const account = accounts[0];
+      showAccount.innerHTML = account;
+      document.getElementById('address').setAttribute("value", account);
+    }
+</script>
 
 {% endblock %}
