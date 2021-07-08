@@ -36,8 +36,8 @@ eth-keys==0.3.3
 eth-rlp==0.2.1
 eth-typing==2.2.2
 eth-utils==1.10.0
-fastapi==0.63.0
-fastapi-sessions==0.2.0
+fastapi
+fastapi-sessions
 Flask==2.0.0
 graphene==2.1.8
 graphql-core==2.3.2
@@ -51,7 +51,7 @@ importlib-metadata==4.0.1
 ipfshttpclient==0.8.0a2
 ipython==7.24.1
 ipython-genutils==0.2.0
-itsdangerous==2.0.1
+itsdangerous
 jedi==0.18.0
 Jinja2==3.0.1
 jmespath==0.10.0

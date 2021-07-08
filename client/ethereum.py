@@ -9,6 +9,7 @@ AM_Project_contract_address = config.AMPROJECT_CONTRACT_ADDRESS
 # wallet_private_key = config.WALLET_PRIVATE_KEY
 # wallet_address = config.WALLET_ADDRESS
 
+
 infura_url = config.INFURA_URL
 
 w3 = Web3(HTTPProvider(infura_url))
@@ -89,6 +90,7 @@ def add_license(_licensedby: str, _licensedto: str, _numprints: int, _parthash: 
     Returns:
         If successful, a dict containing the transactionHash. Otherwise, a timeout error.
     """
+
     if wallet_address and wallet_private_key:
 
         nonce = w3.eth.getTransactionCount(wallet_address)
@@ -243,11 +245,10 @@ def add_hash(_projectid: int, _checksum: str, wallet_address=None, wallet_privat
         wallet_address: (optional) a wallet to sign the transaction directly, otherwise Metamask will be used.
         wallet_private_key: (optional) the private key of a signing wallet.
 
+
     Returns:
         If successful, a dict containing the transactionHash. Otherwise, a timeout error.
     """
-
-
 
     if wallet_private_key and wallet_address:
 
@@ -296,3 +297,4 @@ def sign_and_send_transaction(txn_dict, wallet_private_key):
         return {'status': 'failed', 'error': 'timeout'}
 
     return {'status': 'added', 'transactionHash': tx_receipt['transactionHash'].hex()}
+

@@ -198,7 +198,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         access_token=payload.get('AccessToken'),
         username=username)
     user_obj = u.get_user()
-    print("name: ", user_obj.name)
     user = {
         "username": user_obj.username,
         "address": user_obj.address,
@@ -388,17 +387,16 @@ async def view_blockchain_data(project_id, request: Request):
     return templates.TemplateResponse("blockchain.html", {"request": request, "blockchain_data": blockchain_data, "metadata": metadata, "files_list": file_list, "project_id": project_id})
 
 
-# @app.post("/projects/{project_id}/update", response_class=HTMLResponse)
-# async def view_project(project_id, request: Request):
-#     metadata = database.get_project_metadata(projects_table, project_id)
-#     action_url = "/projects/update/" + project_id
-#     return templates.TemplateResponse("upload.html", {"request": request, "metadata": metadata, "action_url": action_url})
+@app.post("/projects/{project_id}/update", response_class=HTMLResponse)
+async def view_project(project_id, request: Request):
+    metadata = database.get_project_metadata(projects_table, project_id)
+    action_url = "/projects/update/" + project_id
+    return templates.TemplateResponse("upload.html", {"request": request, "metadata": metadata, "action_url": action_url})
 
 
 @app.post("/projects/update/{project_id}")
-async def import_file_post(request: Request, project_id, files: Optional[UploadFile] = File(...), data_type: str = Form(...),
-                           remotepin: bool = Form(False), toblockchain: bool = Form(False), fid: Optional[str] = Form(None),
-                           current_user: User = Depends(get_current_active_user)):
+async def import_file_post(project_id, files: Optional[UploadFile] = File(...), data_type: str = Form(...),
+                           remotepin: bool = Form(False), toblockchain: bool = Form(False), fid: Optional[str] = Form(None), current_user: User = Depends(get_current_active_user)):
     if files.filename is not '':
         print(data_type)
         if data_type is 'none':
@@ -487,7 +485,6 @@ async def import_file_post(request: Request, project_id, files: Optional[UploadF
                                                                         "project_id": project_id, "action_url":
                                                                             '/add_hash_transaction/',
                                                                         "smart_contract_method": "AMProject.add_hash"})
-            # return sign_transaction_metamask(request, txn_dict['data'], fid, files_dict, project_id, metadata)
         else:
             files_dict['transaction_url'] = ''
         if fid:
@@ -525,6 +522,7 @@ async def list_my_projects(request: Request, current_user: User = Depends(get_cu
 
 
 @app.get("/projects/flow/new")
+
 async def new_project(request: Request, current_user: User = Depends(get_current_active_user)):
     # flow.newProject()
     res = ethereum.add_project(current_user.address)
@@ -652,6 +650,7 @@ async def new_license(request: Request, licensed_by_address: str = Form(...), li
                       files: UploadFile = File(...), current_user: User = Depends(get_current_active_user), licensed_to_email: str = Form(...)):
     licensed_by_email = current_user.username
     parthash = hashlib.md5(files.file.read()).hexdigest()
+
     txn_dict = ethereum.add_license(licensed_by_address, licensed_to_address, int(numprints), parthash)
     new_license_dict = {
         "licensed_by_address": licensed_by_address,
@@ -801,3 +800,4 @@ async def update_user(request: Request, name: str = Form(...), address: str = Fo
     u.update_profile({'name': name, 'address': address}, attr_map=dict())
     user_data = u.get_user(attr_map=dict())
     return templates.TemplateResponse("user_data.html", {"request": request, "user_data": user_data})
+

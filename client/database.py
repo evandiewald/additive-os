@@ -109,9 +109,7 @@ def update_password(mongo_db, username, new_password):
 def update_project_mongo(mongo_db, project_id, metadata, files_dict):
     project_data = mongo_db['project-data']
     files = mongo_db['files']
-    # try:
-    #     project_data.insert_one(metadata)
-    # except pymongo.errors.DuplicateKeyError:
+
     if 'project_name' in metadata and metadata['project_name'] is not None:
         newname = { "$set": {"project_name": metadata['project_name'], "last_updated": metadata['last_updated']} }
         project_data.update_one({"_id": project_id}, newname)
@@ -220,6 +218,7 @@ def remove_user(mongo_db, project_id, user):
     project_data.update_one({"_id": project_id}, updatequery)
 
 
+
 def init_project(mongo_db, user, transaction_url):
     project_data = mongo_db['project-data']
     # init_project_id = str(max(flow.getProjects()['collection']))
@@ -234,7 +233,6 @@ def init_project(mongo_db, user, transaction_url):
         except pymongo.errors.DuplicateKeyError:
             timer += 1
     return {"message": "New Project transaction timed out. Try increasing the gas limit."}
-
 
 
 def add_license(mongo_db, license_id, transaction_url, num_prints, part_hash, licensed_by_email, licensed_to_email, licensed_by_address, licensed_to_address):
