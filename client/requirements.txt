@@ -93,7 +93,7 @@ pyparsing==2.4.7
 pyrsistent==0.17.3
 python-dateutil==2.8.1
 python-dotenv==0.17.1
-python-jose==3.2.0
+python-jose
 python-multipart==0.0.5
 pytz==2021.1
 pyvis==0.1.9
@@ -125,7 +125,7 @@ uvicorn==0.13.4
 varint==1.0.2
 watchgod==0.7
 wcwidth==0.2.5
-web3==5.20.0
+web3
 websockets==8.1
 Werkzeug==2.0.1
 yarl==1.6.3

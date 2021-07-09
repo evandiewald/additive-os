@@ -94,7 +94,7 @@ def add_license(_licensedby: str, _licensedto: str, _numprints: int, _parthash: 
     if wallet_address and wallet_private_key:
 
         nonce = w3.eth.getTransactionCount(wallet_address)
-        txn_dict = AMLicense_contract.functions.addLicense(_licensedby, _licensedto, _numprints, _parthash).buildTransaction({
+        txn_dict = AMLicense_contract.functions.addLicense(w3.toChecksumAddress(_licensedby), w3.toChecksumAddress(_licensedto), _numprints, _parthash).buildTransaction({
             'chainId': 3,
             'gas': 2000000,
             'gasPrice': w3.toWei('1', 'gwei'),
@@ -104,7 +104,7 @@ def add_license(_licensedby: str, _licensedto: str, _numprints: int, _parthash: 
         res = sign_and_send_transaction(txn_dict, wallet_private_key)
         return res
     else:
-        txn_dict = AMLicense_contract.functions.addLicense(_licensedby, _licensedto, _numprints, _parthash).buildTransaction({
+        txn_dict = AMLicense_contract.functions.addLicense(w3.toChecksumAddress(_licensedby), w3.toChecksumAddress(_licensedto), _numprints, _parthash).buildTransaction({
             'chainId': 3,
             'gas': 2000000,
             'gasPrice': w3.toWei('1', 'gwei')
@@ -224,7 +224,7 @@ def add_project(_author: str, wallet_address=None, wallet_private_key=None):
         return res
 
     else:
-        txn_dict = AMProject_contract.functions.addProject(_author).buildTransaction({
+        txn_dict = AMProject_contract.functions.addProject(w3.toChecksumAddress(_author)).buildTransaction({
             'chainId': 3,
             'gas': 2000000,
             'gasPrice': w3.toWei('1', 'gwei')

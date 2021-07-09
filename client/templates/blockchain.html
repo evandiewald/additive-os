@@ -3,7 +3,7 @@
 {% block content %}
 <div>
 
-        <div class="card my-3 col-9 mx-auto">
+        <div class="card my-3 col-10 mx-auto">
             <h5 class="card-header">Project ID: {{ project_id }}</h5>
           <div class="card-body">
             <p>Project Title: {{ metadata['project_name'] }}</p>
@@ -26,7 +26,15 @@
                 <tr>
                     <td>{{ files_list[i]['filename'] }}</td>
                     <td>{{ files_list[i]['file_type'] }}</td>
+                    {% if blockchain_data[1][counter.value]|length > 1 %}
                     <td><a href={{files_list[i]['transaction_url']}} target="_blank" rel="noopener noreferrer">{{ blockchain_data[1][counter.value] }} <i class="bi bi-box-arrow-up-right"></i></a></td>
+                    {% else %}
+                    <td>
+                        <a href={{files_list[i]['transaction_url']}} target="_blank" rel="noopener noreferrer">
+                            <span>Transaction Pending... <div class="spinner-grow spinner-grow-sm text-dark" role="status"></div> <i class="bi bi-box-arrow-up-right"></i></span>
+                        </a>
+                    </td>
+                    {% endif %}
                     <td>{{ files_list[i]['checksum'] }}</td>
                     {% if blockchain_data[1][counter.value] == files_list[i]['checksum'] %}
                     <td style="text-align: center"><i class="bi bi-shield-check"></i></td>
