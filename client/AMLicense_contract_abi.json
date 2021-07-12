@@ -3,11 +3,6 @@
 		"inputs": [
 			{
 				"internalType": "address",
-				"name": "_licensedby",
-				"type": "address"
-			},
-			{
-				"internalType": "address",
 				"name": "_licensedto",
 				"type": "address"
 			},
@@ -49,14 +44,9 @@
 					{
 						"components": [
 							{
-								"internalType": "uint256",
-								"name": "timestamp",
-								"type": "uint256"
-							},
-							{
-								"internalType": "uint256",
-								"name": "operatorid",
-								"type": "uint256"
+								"internalType": "address",
+								"name": "approvedby",
+								"type": "address"
 							},
 							{
 								"internalType": "string",
@@ -82,16 +72,6 @@
 			{
 				"internalType": "uint256",
 				"name": "_licenseid",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_timestamp",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_operatorid",
 				"type": "uint256"
 			},
 			{
@@ -146,14 +126,9 @@
 					{
 						"components": [
 							{
-								"internalType": "uint256",
-								"name": "timestamp",
-								"type": "uint256"
-							},
-							{
-								"internalType": "uint256",
-								"name": "operatorid",
-								"type": "uint256"
+								"internalType": "address",
+								"name": "approvedby",
+								"type": "address"
 							},
 							{
 								"internalType": "string",
@@ -205,14 +180,9 @@
 			{
 				"components": [
 					{
-						"internalType": "uint256",
-						"name": "timestamp",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "operatorid",
-						"type": "uint256"
+						"internalType": "address",
+						"name": "approvedby",
+						"type": "address"
 					},
 					{
 						"internalType": "string",
@@ -304,14 +274,9 @@
 					{
 						"components": [
 							{
-								"internalType": "uint256",
-								"name": "timestamp",
-								"type": "uint256"
-							},
-							{
-								"internalType": "uint256",
-								"name": "operatorid",
-								"type": "uint256"
+								"internalType": "address",
+								"name": "approvedby",
+								"type": "address"
 							},
 							{
 								"internalType": "string",

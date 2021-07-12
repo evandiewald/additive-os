@@ -5,7 +5,7 @@
     <h5 class="card-header">Submit Transaction with Metamask</h5>
     <div class="card-body">
         <form id="txn-form" method="post" enctype="multipart/form-data" action={{action_url}}>
-            <button type="button" class="enableEthereumButton btn btn-warning mb-3">Connect Metamask</button>
+            <button type="button" class="enableEthereumButton btn btn-warning mb-3">Connect Metamask <img src="https://raw.githubusercontent.com/MetaMask/brand-resources/c3c894bb8c460a2e9f47c07f6ef32e234190a7aa/SVG/metamask-fox.svg" height="24"></button>
             <div class="mb-3">
                 <label>Account: <code><span class="showAccount">Connect Metamask to Access Account</span></code></label>
             </div>
@@ -37,13 +37,11 @@
             </div>
             {% endif %}
 
-            {% if operator_id %}
+            {% if reporthash %}
             <div class="mb-3">
 <!--                <label for="new_license_dict">Project ID: <span>{{project_id}}</span></label>-->
-                <input readonly hidden id="operator_id" name="operator_id" value="{{ operator_id }}">
                 <input readonly hidden id="license_id" name="license_id" value={{license_id}}>
                 <input readonly hidden id="reporthash" name="reporthash" value={{reporthash}}>
-                <input readonly hidden id="ts" name="ts" value={{ts}}>
             </div>
             {% endif %}
 

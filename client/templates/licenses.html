@@ -41,7 +41,7 @@
                 <tr>
                     <th>#</th>
                     <th>Timestamp</th>
-                    <th>Operator ID</th>
+                    <th>Added By</th>
                     <th>Build Report Hash</th>
                     <th>Etherscan Transaction</th>
                     <th>QR Code</th>
@@ -51,7 +51,7 @@
                 <tr>
                     <td>{{ (j+1)|string() }}</td>
                     <td>{{ license_list[i]['prints'][j]['timestamp_str'] }}</td>
-                    <td>{{ license_list[i]['prints'][j]['operator_id'] }}</td>
+                    <td><code>{{ license_list[i]['prints'][j]['added_by'] }}</code></td>
                     <td>{{ license_list[i]['prints'][j]['report_hash'] }}</td>
                     <td><a href={{license_list[i]['prints'][j]['transaction_url']}} target="_blank" rel="noopener noreferrer">View <i class="bi bi-box-arrow-up-right"></i></a></td>
                     <td><a href={{qr_url}} target="_blank" rel="noopener noreferrer">Download <i class="bi bi-download"></i></a></td>

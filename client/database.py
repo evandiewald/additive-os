@@ -221,16 +221,18 @@ def remove_user(mongo_db, project_id, user):
 
 def init_project(mongo_db, user, transaction_url):
     project_data = mongo_db['project-data']
-    # init_project_id = str(max(flow.getProjects()['collection']))
     timer = 0
     while timer < 10:
         time.sleep(3)
-        init_project_id = str(ethereum.get_project_count() - 1)
-        try:
-            project_data.insert_one({"_id": init_project_id, "user_list": [user], "transaction_url": transaction_url,
-                 "project_name": "Untitled Project"})
-            return init_project_id
-        except pymongo.errors.DuplicateKeyError:
+        if ethereum.get_project_count() > 0:
+            init_project_id = str(ethereum.get_project_count() - 1)
+            try:
+                project_data.insert_one({"_id": init_project_id, "user_list": [user], "transaction_url": transaction_url,
+                     "project_name": "Untitled Project"})
+                return init_project_id
+            except pymongo.errors.DuplicateKeyError:
+                timer += 1
+        else:
             timer += 1
     return {"message": "New Project transaction timed out. Try increasing the gas limit."}
 
@@ -243,13 +245,12 @@ def add_license(mongo_db, license_id, transaction_url, num_prints, part_hash, li
                              "prints": []})
 
 
-def add_print(mongo_db, license_id, timestamp, operatorid, report_hash, transaction_url):
+def add_print(mongo_db, license_id, added_by, report_hash, transaction_url):
     license_data = mongo_db['license-data']
 
     newprint = {"$push": {"prints": {
-        "timestamp": timestamp,
         "timestamp_str": datetime.datetime.now().isoformat(),
-        "operator_id": operatorid,
+        "added_by": added_by,
         "report_hash": report_hash,
         "transaction_url": transaction_url
     }}}

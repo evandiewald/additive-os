@@ -158,6 +158,17 @@ class OAuth2PasswordBearerCookie(OAuth2):
                 return None
         return param
 
+
+def garbage_collection():
+    temp_path = tempfile.gettempdir() + '/amblockchainfiles'
+    try:
+        temp_files = os.listdir(temp_path)
+        for file in temp_files:
+            os.remove(temp_path+'/'+file)
+    except FileNotFoundError:
+        pass
+
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearerCookie(tokenUrl="/token")
@@ -198,15 +209,15 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         access_token=payload.get('AccessToken'),
         username=username)
     user_obj = u.get_user()
-    user = {
-        "username": user_obj.username,
-        "address": user_obj.address,
-        "name": user_obj.name,
-        "AccessKeyId": payload.get("AccessKeyId"),
-        "SecretKey": payload.get("SecretKey"),
-        "SessionToken": payload.get("SessionToken"),
-        "AccessToken": payload.get("AccessToken")
-    }
+    # user = {
+    #     "username": user_obj.username,
+    #     "address": user_obj.address,
+    #     "name": user_obj.name,
+    #     "AccessKeyId": payload.get("AccessKeyId"),
+    #     "SecretKey": payload.get("SecretKey"),
+    #     "SessionToken": payload.get("SessionToken"),
+    #     "AccessToken": payload.get("AccessToken")
+    # }
     user = User(
         username=user_obj.username,
         address=user_obj.address,
@@ -319,8 +330,6 @@ async def read_own_items(current_user: User = Depends(get_current_active_user)):
 async def new_user(request: Request, username: str = Form(...), password: str = Form(...), name: str = Form(...),
                    address: str = Form(...)):
     try:
-        # database.add_user(users_table, username, password, name)
-        # database.add_user(mongo_db, username, password, name, address)
         u = Cognito(
             user_pool_id=config.USER_POOL_ID,
             client_id=config.USER_POOL_CLIENT,
@@ -355,10 +364,8 @@ async def signup(request: Request):
     return templates.TemplateResponse("signup.html", {"request": request})
 
 
-# @app.get("/projects/{project_id}/view", response_class=HTMLResponse)
 @app.api_route("/projects/{project_id}/view", methods=["GET", "POST", "DELETE"])
 async def upload(project_id, request: Request, current_user: User = Depends(get_current_active_user)):
-    # metadata = database.get_project_metadata(projects_table, project_id)
 
     metadata, file_data = database.get_project_metadata_mongo(mongo_db, project_id)
     try:
@@ -385,13 +392,6 @@ async def view_blockchain_data(project_id, request: Request):
     except json.decoder.JSONDecodeError:
         blockchain_data = None
     return templates.TemplateResponse("blockchain.html", {"request": request, "blockchain_data": blockchain_data, "metadata": metadata, "files_list": file_list, "project_id": project_id})
-
-
-@app.post("/projects/{project_id}/update", response_class=HTMLResponse)
-async def view_project(project_id, request: Request):
-    metadata = database.get_project_metadata(projects_table, project_id)
-    action_url = "/projects/update/" + project_id
-    return templates.TemplateResponse("upload.html", {"request": request, "metadata": metadata, "action_url": action_url})
 
 
 @app.post("/projects/update/{project_id}")
@@ -471,10 +471,7 @@ async def import_file_post(request: Request, project_id, files: Optional[UploadF
     if files_dict:
         if toblockchain:
             # METAMASK
-            # res = ethereum.add_hash(int(project_id), checksum)
-            txn_dict = ethereum.add_hash(int(project_id), checksum)
-            # transaction_url = 'https://ropsten.etherscan.io/tx/' + res['transactionHash']
-            # files_dict['transaction_url'] = transaction_url
+            txn_dict = ethereum.add_file(int(project_id), checksum)
             if fid:
                 database.update_entry_files(mongo_db, fid, files_dict)
                 database.update_tree_files(mongo_db, fid, files_dict)
@@ -484,7 +481,8 @@ async def import_file_post(request: Request, project_id, files: Optional[UploadF
                                                                         "checksum": files_dict['checksum'],
                                                                         "project_id": project_id, "action_url":
                                                                             '/add_hash_transaction/',
-                                                                        "smart_contract_method": "AMProject.add_hash"})
+                                                                        "smart_contract_method": "AMProject.addFile"
+                                                                        })
         else:
             files_dict['transaction_url'] = ''
         if fid:
@@ -529,7 +527,7 @@ async def new_project(request: Request, current_user: User = Depends(get_current
     return templates.TemplateResponse("sign_transaction.html", {"request": request, "contract_address":
         config.AMPROJECT_CONTRACT_ADDRESS, "txn_data": res['data'], "action_url": '/new_project_transaction/',
                                                                         "smart_contract_method":
-                                                                            "AMProject.add_project"})
+                                                                            "AMProject.addProject"})
 
 
 @app.post("/new_project_transaction")
@@ -569,9 +567,6 @@ async def delete_file(ipfs_hash):
         client.files.rm('/'+filename+'.encrypted')
     except ipfshttpclient.exceptions.ErrorResponse:
         pass
-    # blockchain
-    # files_data = database.get_data_for_flow(mongo_db, project_id)
-    # flow.updateProject(project_id, str(files_data))
     return RedirectResponse("/projects/"+project_id+"/view")
 
 
@@ -583,7 +578,8 @@ async def remove_user(project_id, user):
 
 @app.post("/checksum/validate")
 async def generate_checksum(files: Optional[UploadFile] = File(...)):
-    file_hash = hashlib.md5(files.file.read()).hexdigest()
+    # file_hash = hashlib.md5(files.file.read()).hexdigest()
+    file_hash = hashlib.sha3_224(files.file.read()).hexdigest()
     print(file_hash)
     return JSONResponse({"checksum": file_hash})
 
@@ -622,12 +618,6 @@ async def enter_reset_code(request: Request, new_password: str = Form(...), code
     return RedirectResponse("/")
 
 
-@app.post("/update_password")
-async def update_password(request: Request, username: str = Form(...), new_password: str = Form(...)):
-    database.update_password(users_table, username, new_password)
-    return templates.TemplateResponse("login.html", {"request": request})
-
-
 @app.route("/licenses", methods=["GET", "POST"])
 async def view_licenses(request: Request):
     license_list = database.get_licenses(mongo_db)
@@ -649,9 +639,10 @@ async def new_print_form(request: Request, current_user: User = Depends(get_curr
 async def new_license(request: Request, licensed_by_address: str = Form(...), licensed_to_address: str = Form(...), numprints: str = Form(...),
                       files: UploadFile = File(...), current_user: User = Depends(get_current_active_user), licensed_to_email: str = Form(...)):
     licensed_by_email = current_user.username
-    parthash = hashlib.md5(files.file.read()).hexdigest()
+    # parthash = hashlib.md5(files.file.read()).hexdigest()
+    parthash = hashlib.sha3_224(files.file.read()).hexdigest()
 
-    txn_dict = ethereum.add_license(licensed_by_address, licensed_to_address, int(numprints), parthash)
+    txn_dict = ethereum.add_license(licensed_to_address, int(numprints), parthash)
     new_license_dict = {
         "licensed_by_address": licensed_by_address,
         "licensed_to_address": licensed_to_address,
@@ -674,36 +665,41 @@ async def new_license_transaction(txn_hash: str = Form(...), numprints: str = Fo
     transaction_url = 'https://ropsten.etherscan.io/tx/' + txn_hash
     timer = 0
     while timer < 10:
-        try:
-            license_id = ethereum.get_license_count() - 1
-            database.add_license(mongo_db, license_id, transaction_url, int(numprints), parthash,
-                                 licensed_by_email, licensed_to_email, licensed_by_address,
-                                 licensed_to_address)
-            return RedirectResponse("/licenses")
-        except pymongo.errors.DuplicateKeyError:
+        if ethereum.get_license_count() > 0:
+            try:
+                license_id = ethereum.get_license_count() - 1
+                database.add_license(mongo_db, license_id, transaction_url, int(numprints), parthash,
+                                     licensed_by_email, licensed_to_email, licensed_by_address,
+                                     licensed_to_address)
+                return RedirectResponse("/licenses")
+            except pymongo.errors.DuplicateKeyError:
+                timer += 1
+                time.sleep(3)
+        else:
             timer += 1
             time.sleep(3)
     return {"message": "New License transaction timed out. Try a higher gas limit."}
 
 
 @app.post("/licenses/{license_id}/new_print/post")
-async def new_print(request: Request, license_id, operatorid: str = Form(...), files: UploadFile = File(...)):
-    reporthash = hashlib.md5(files.file.read()).hexdigest()
+async def new_print(request: Request, license_id, files: UploadFile = File(...)):
+    # reporthash = hashlib.md5(files.file.read()).hexdigest()
+    reporthash = hashlib.sha3_224(files.file.read()).hexdigest()
     ts = time.mktime(datetime.now().timetuple())
-    txn_dict = ethereum.add_print(int(license_id), int(ts), int(operatorid), reporthash)
+    txn_dict = ethereum.add_print(int(license_id), reporthash)
     return templates.TemplateResponse("sign_transaction.html", {"request": request, "txn_data": txn_dict['data'],
                                                                 "contract_address": config.AMLICENSE_CONTRACT_ADDRESS,
-                                                                "license_id": license_id, "operator_id": operatorid,
+                                                                "license_id": license_id,
                                                                 "reporthash": reporthash, "action_url":
                                                                     "/new_print_transaction", "ts": str(ts),
                                                                         "smart_contract_method": "AMLicense.add_print"})
 
 
 @app.post("/new_print_transaction")
-async def new_print_transaction(txn_hash: str = Form(...), license_id: str = Form(...), operator_id: str = Form(...),
-                                reporthash: str = Form(...), ts: str = Form(...)):
+async def new_print_transaction(txn_hash: str = Form(...), license_id: str = Form(...),
+                                reporthash: str = Form(...), current_user: User = Depends(get_current_active_user)):
     transaction_url = 'https://ropsten.etherscan.io/tx/' + txn_hash
-    database.add_print(mongo_db, int(license_id), ts, int(operator_id), reporthash, transaction_url)
+    database.add_print(mongo_db, int(license_id), current_user.address, reporthash, transaction_url)
     return RedirectResponse("/licenses")
 
 
@@ -715,7 +711,7 @@ async def view_print_license_info(request: Request, license_id, print_id):
 
 @app.get("/licenses/{license_id}/prints/{print_id}/qr")
 async def download_qr(request: Request, license_id, print_id):
-    tempfilepath = tempfile.gettempdir() + '/qr.png'
+    tempfilepath = tempfile.gettempdir() + '/amblockchainfiles/qr.png'
 
     # url = config.BASE_URL + "licenses/" + license_id + "/prints/" + print_id
     url = config.LICENSE_URL + "licenses/" + license_id + "/prints/" + print_id

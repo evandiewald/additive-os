@@ -76,7 +76,7 @@ def get_print(_licenseid: int, _printid: int):
     return AMLicense_contract.functions.getPrint(_licenseid, _printid).call()
 
 
-def add_license(_licensedby: str, _licensedto: str, _numprints: int, _parthash: str, wallet_address=None, wallet_private_key=None):
+def add_license(_licensedto: str, _numprints: int, _parthash: str, wallet_address=None, wallet_private_key=None):
     """Function in the AMLicense contract to initiate a new license.
 
     As a transaction, this function requires gas fees. You may need to adjust the gas limit in the txn_dict line below
@@ -94,7 +94,8 @@ def add_license(_licensedby: str, _licensedto: str, _numprints: int, _parthash: 
     if wallet_address and wallet_private_key:
 
         nonce = w3.eth.getTransactionCount(wallet_address)
-        txn_dict = AMLicense_contract.functions.addLicense(w3.toChecksumAddress(_licensedby), w3.toChecksumAddress(_licensedto), _numprints, _parthash).buildTransaction({
+        txn_dict = AMLicense_contract.functions.addLicense(w3.toChecksumAddress(_licensedto), int(_numprints),
+                                                           _parthash).buildTransaction({
             'chainId': 3,
             'gas': 2000000,
             'gasPrice': w3.toWei('1', 'gwei'),
@@ -104,7 +105,8 @@ def add_license(_licensedby: str, _licensedto: str, _numprints: int, _parthash: 
         res = sign_and_send_transaction(txn_dict, wallet_private_key)
         return res
     else:
-        txn_dict = AMLicense_contract.functions.addLicense(w3.toChecksumAddress(_licensedby), w3.toChecksumAddress(_licensedto), _numprints, _parthash).buildTransaction({
+        txn_dict = AMLicense_contract.functions.addLicense(w3.toChecksumAddress(_licensedto), int(_numprints),
+                                                           _parthash).buildTransaction({
             'chainId': 3,
             'gas': 2000000,
             'gasPrice': w3.toWei('1', 'gwei')
@@ -112,7 +114,7 @@ def add_license(_licensedby: str, _licensedto: str, _numprints: int, _parthash: 
         return txn_dict
 
 
-def add_print(_licenseid: int, _timestamp: int, _operatorid: int, _reporthash: str, wallet_address=None, wallet_private_key=None):
+def add_print(_licenseid: int, _reporthash: str, wallet_address=None, wallet_private_key=None):
     """Function in the AMLicense contract to log a new print within a certain license.
 
     As a transaction, this function requires gas fees. You may need to adjust the gas limit in the txn_dict line below
@@ -123,7 +125,7 @@ def add_print(_licenseid: int, _timestamp: int, _operatorid: int, _reporthash: s
         _licenseid: The license_id index of the license to which the print should be attached.
         _timestamp: A timestamp of when the print occurred (different from when this transaction occurred).
         _operatorid: An index that maps to a machine operator.
-        _reporthash: The MD5 checksum of the build report.
+        _reporthash: The checksum of the build report.
 
     Returns:
         If successful, a dict containing the transactionHash. Otherwise, a timeout error.
@@ -131,7 +133,7 @@ def add_print(_licenseid: int, _timestamp: int, _operatorid: int, _reporthash: s
 
     if wallet_private_key and wallet_address:
         nonce = w3.eth.getTransactionCount(wallet_address)
-        txn_dict = AMLicense_contract.functions.addPrint(_licenseid, _timestamp, _operatorid, _reporthash).buildTransaction({
+        txn_dict = AMLicense_contract.functions.addPrint(_licenseid, _reporthash).buildTransaction({
             'chainId': 3,
             'gas': 2000000,
             'gasPrice': w3.toWei('1', 'gwei'),
@@ -141,8 +143,7 @@ def add_print(_licenseid: int, _timestamp: int, _operatorid: int, _reporthash: s
         res = sign_and_send_transaction(txn_dict, wallet_private_key)
         return res
     else:
-        txn_dict = AMLicense_contract.functions.addPrint(_licenseid, _timestamp, _operatorid,
-                                                         _reporthash).buildTransaction({
+        txn_dict = AMLicense_contract.functions.addPrint(_licenseid, _reporthash).buildTransaction({
             'chainId': 3,
             'gas': 2000000,
             'gasPrice': w3.toWei('1', 'gwei')
@@ -191,12 +192,12 @@ def get_hash(_projectid: int, _fileid: int):
         _fileid: The uint index of the hash stored in the files[] array.
 
     Returns:
-        The file hash.
+        tuple(hash: string, author: address)
     """
-    return AMProject_contract.functions.getHash(_projectid, _fileid).call()
+    return AMProject_contract.functions.getFile(_projectid, _fileid).call()
 
 
-def add_project(_author: str, wallet_address=None, wallet_private_key=None):
+def add_project(wallet_address=None, wallet_private_key=None):
     """Function in the AMProject contract to initiate a new Project.
 
     When initializing a project, you only need to specify the _author. The files[] array will initialize as empty.
@@ -212,7 +213,7 @@ def add_project(_author: str, wallet_address=None, wallet_private_key=None):
     """
     if wallet_address and wallet_private_key:
         nonce = w3.eth.getTransactionCount(wallet_address)
-        txn_dict = AMProject_contract.functions.addProject(_author).buildTransaction({
+        txn_dict = AMProject_contract.functions.addProject().buildTransaction({
             'chainId': 3,
             'gas': 2000000,
             'gasPrice': w3.toWei('1', 'gwei'),
@@ -224,7 +225,7 @@ def add_project(_author: str, wallet_address=None, wallet_private_key=None):
         return res
 
     else:
-        txn_dict = AMProject_contract.functions.addProject(w3.toChecksumAddress(_author)).buildTransaction({
+        txn_dict = AMProject_contract.functions.addProject().buildTransaction({
             'chainId': 3,
             'gas': 2000000,
             'gasPrice': w3.toWei('1', 'gwei')
@@ -232,7 +233,7 @@ def add_project(_author: str, wallet_address=None, wallet_private_key=None):
         return txn_dict
 
 
-def add_hash(_projectid: int, _checksum: str, wallet_address=None, wallet_private_key=None):
+def add_file(_projectid: int, _checksum: str, wallet_address=None, wallet_private_key=None):
     """Function in the AMProject contract to associate a verified file hash with a Project.
 
     As a transaction, this function requires gas fees. You may need to adjust the gas limit in the txn_dict line below
@@ -241,7 +242,7 @@ def add_hash(_projectid: int, _checksum: str, wallet_address=None, wallet_privat
 
     Args:
         _projectid: The project_id index of the Project to associate the file with.
-        _checksum: The MD5 checksum of the verified file.
+        _checksum: The checksum of the verified file.
         wallet_address: (optional) a wallet to sign the transaction directly, otherwise Metamask will be used.
         wallet_private_key: (optional) the private key of a signing wallet.
 
@@ -253,7 +254,7 @@ def add_hash(_projectid: int, _checksum: str, wallet_address=None, wallet_privat
     if wallet_private_key and wallet_address:
 
         nonce = w3.eth.getTransactionCount(wallet_address)
-        txn_dict = AMProject_contract.functions.addHash(_projectid, _checksum).buildTransaction({
+        txn_dict = AMProject_contract.functions.addFile(_projectid, _checksum).buildTransaction({
             'chainId': 3,
             'gas': 2000000,
             'gasPrice': w3.toWei('1', 'gwei'),
@@ -264,7 +265,7 @@ def add_hash(_projectid: int, _checksum: str, wallet_address=None, wallet_privat
         return res
 
     else:
-        txn_dict = AMProject_contract.functions.addHash(_projectid, _checksum).buildTransaction({
+        txn_dict = AMProject_contract.functions.addFile(_projectid, _checksum).buildTransaction({
             'chainId': 3,
             'gas': 2000000,
             'gasPrice': w3.toWei('1', 'gwei')

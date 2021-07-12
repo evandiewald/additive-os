@@ -12,7 +12,7 @@
 				"type": "string"
 			}
 		],
-		"name": "addHash",
+		"name": "addFile",
 		"outputs": [
 			{
 				"internalType": "uint256",
@@ -24,13 +24,7 @@
 		"type": "function"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_author",
-				"type": "address"
-			}
-		],
+		"inputs": [],
 		"name": "addProject",
 		"outputs": [
 			{
@@ -41,9 +35,21 @@
 						"type": "address"
 					},
 					{
-						"internalType": "string[]",
+						"components": [
+							{
+								"internalType": "string",
+								"name": "hash",
+								"type": "string"
+							},
+							{
+								"internalType": "address",
+								"name": "author",
+								"type": "address"
+							}
+						],
+						"internalType": "struct AMProject.File[]",
 						"name": "files",
-						"type": "string[]"
+						"type": "tuple[]"
 					}
 				],
 				"internalType": "struct AMProject.Project",
@@ -67,12 +73,24 @@
 				"type": "uint256"
 			}
 		],
-		"name": "getHash",
+		"name": "getFile",
 		"outputs": [
 			{
-				"internalType": "string",
+				"components": [
+					{
+						"internalType": "string",
+						"name": "hash",
+						"type": "string"
+					},
+					{
+						"internalType": "address",
+						"name": "author",
+						"type": "address"
+					}
+				],
+				"internalType": "struct AMProject.File",
 				"name": "",
-				"type": "string"
+				"type": "tuple"
 			}
 		],
 		"stateMutability": "view",
@@ -96,9 +114,21 @@
 						"type": "address"
 					},
 					{
-						"internalType": "string[]",
+						"components": [
+							{
+								"internalType": "string",
+								"name": "hash",
+								"type": "string"
+							},
+							{
+								"internalType": "address",
+								"name": "author",
+								"type": "address"
+							}
+						],
+						"internalType": "struct AMProject.File[]",
 						"name": "files",
-						"type": "string[]"
+						"type": "tuple[]"
 					}
 				],
 				"internalType": "struct AMProject.Project",
@@ -134,9 +164,21 @@
 						"type": "address"
 					},
 					{
-						"internalType": "string[]",
+						"components": [
+							{
+								"internalType": "string",
+								"name": "hash",
+								"type": "string"
+							},
+							{
+								"internalType": "address",
+								"name": "author",
+								"type": "address"
+							}
+						],
+						"internalType": "struct AMProject.File[]",
 						"name": "files",
-						"type": "string[]"
+						"type": "tuple[]"
 					}
 				],
 				"internalType": "struct AMProject.Project[]",
