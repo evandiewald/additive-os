@@ -6,3 +6,5 @@ client/py-ipfs-http-client/
 api/node_modules/
 
 frontend/
+
+.idea/
