@@ -2,8 +2,6 @@ FLOW_API_URL = 'http://localhost:3000/v1'
 
 CMK_ID = '20bf0117-0cf0-4ea4-8a18-e34d5964b899'
 
-MONGO_CONNECTION_STRING = "mongodb+srv://amdb-user:nLN1JrDYEiNoHAUS@am-materials.xgcio.mongodb.net/amblockchain?ssl=true&ssl_cert_reqs=CERT_NONE"
-
 PINATA_API_KEY = 'd6e0241c09ac4e235fa8'
 PINATA_API_SECRET = '8d870726c5f8892bd0a76864d92f5f6b534d2c2c46cff2ba964c81043e1f14dc'
 

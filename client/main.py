@@ -18,6 +18,7 @@ import qrcode
 from importer import BuildData
 import ontology
 import pytz
+import urllib
 
 from pydantic import BaseModel
 import pymongo
@@ -61,8 +62,9 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # MongoDB
-mongo_client = pymongo.MongoClient(config.MONGO_CONNECTION_STRING)
-mongo_db = mongo_client.amblockchain
+# mongo_client = pymongo.MongoClient(config.MONGO_CONNECTION_STRING)
+# mongo_db = mongo_client.amblockchain
+
 
 # IPFS
 try:
@@ -236,6 +238,19 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
     return current_user
 
 
+def mongo_db_auth(AccessKeyId, SecretKeyId, SessionToken):
+    access_key_id = urllib.parse.quote_plus(AccessKeyId)
+    secret_key_id = urllib.parse.quote_plus(SecretKeyId)
+    session_token = urllib.parse.quote_plus(SessionToken)
+    uri = f"mongodb+srv://{access_key_id}:" \
+          f"{secret_key_id}@am-materials.xgcio.mongodb.net/?authMechanism=MONGODB-AWS&authSource=%24external" \
+          f"&authMechanismProperties=AWS_SESSION_TOKEN:{session_token}"
+    global mongo_client
+    mongo_client = pymongo.MongoClient(uri)
+    mongo_db = mongo_client.amblockchain
+    return mongo_db
+
+
 @app.route("/", methods=["GET", "POST"])
 async def homepage(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
@@ -284,12 +299,13 @@ async def token(username: str = Form(...), password: str = Form(...)):
         value=f"Bearer {token}",
         domain="localtest.me",
         httponly=True,
-        max_age=1800,
-        expires=1800,
+        max_age=3600,
+        expires=3600,
         samesite='strict'
     )
 
-
+    global mongo_db
+    mongo_db = mongo_db_auth(data["AccessKeyId"], data["SecretKey"], data["SessionToken"])
     return response
 
 
@@ -302,6 +318,10 @@ async def login_success(request: Request):
 async def route_logout_and_remove_cookie():
     response = RedirectResponse(url="/")
     response.delete_cookie("Authorization", domain="localtest.me")
+    try:
+        mongo_client.close()
+    except NameError:  # connection was never established in the first place
+        pass
     return response
 
 
@@ -366,7 +386,6 @@ async def signup(request: Request):
 
 @app.api_route("/projects/{project_id}/view", methods=["GET", "POST", "DELETE"])
 async def upload(project_id, request: Request, current_user: User = Depends(get_current_active_user)):
-
     metadata, file_data = database.get_project_metadata_mongo(mongo_db, project_id)
     try:
         build_uid_list = database.get_build_trees(mongo_db, project_id)
@@ -384,7 +403,7 @@ async def upload(project_id, request: Request, current_user: User = Depends(get_
 
 
 @app.get("/projects/{project_id}/blockchain", response_class=HTMLResponse)
-async def view_blockchain_data(project_id, request: Request):
+async def view_blockchain_data(project_id, request: Request, current_user: User = Depends(get_current_active_user)):
     try:
         # blockchain_data = flow.getMetadata(project_id)
         blockchain_data = ethereum.get_project(int(project_id))
@@ -490,12 +509,12 @@ async def import_file_post(request: Request, project_id, files: Optional[UploadF
             database.update_tree_files(mongo_db, fid, files_dict)
     database.update_project_mongo(mongo_db, project_id, metadata, files_dict)
 
-
     return RedirectResponse("/projects/"+project_id+"/view")
 
 
 @app.post("/update/metadata/{project_id}")
-async def update_metadata(project_id, project_name: str = Form(...), user_list: Optional[str] = Form(None)):
+async def update_metadata(project_id, project_name: str = Form(...), user_list: Optional[str] = Form(None),
+                          current_user: User = Depends(get_current_active_user)):
     metadata = {
         "_id": project_id,
         "project_name": project_name,
@@ -520,9 +539,7 @@ async def list_my_projects(request: Request, current_user: User = Depends(get_cu
 
 
 @app.get("/projects/flow/new")
-
 async def new_project(request: Request, current_user: User = Depends(get_current_active_user)):
-    # flow.newProject()
     res = ethereum.add_project(current_user.address)
     return templates.TemplateResponse("sign_transaction.html", {"request": request, "contract_address":
         config.AMPROJECT_CONTRACT_ADDRESS, "txn_data": res['data'], "action_url": '/new_project_transaction/',
@@ -571,14 +588,13 @@ async def delete_file(ipfs_hash):
 
 
 @app.get("/projects/{project_id}/user/{user}/remove")
-async def remove_user(project_id, user):
+async def remove_user(project_id, user, current_user: User = Depends(get_current_active_user)):
     database.remove_user(mongo_db, project_id, user)
     return RedirectResponse("/projects/" + project_id + "/view")
 
 
 @app.post("/checksum/validate")
 async def generate_checksum(files: Optional[UploadFile] = File(...)):
-    # file_hash = hashlib.md5(files.file.read()).hexdigest()
     file_hash = hashlib.sha3_224(files.file.read()).hexdigest()
     print(file_hash)
     return JSONResponse({"checksum": file_hash})
@@ -619,7 +635,7 @@ async def enter_reset_code(request: Request, new_password: str = Form(...), code
 
 
 @app.route("/licenses", methods=["GET", "POST"])
-async def view_licenses(request: Request):
+async def view_licenses(request: Request, current_user: User = Depends(get_current_active_user)):
     license_list = database.get_licenses(mongo_db)
     return templates.TemplateResponse("licenses.html", {"request": request, "license_list": license_list})
 
@@ -639,7 +655,6 @@ async def new_print_form(request: Request, current_user: User = Depends(get_curr
 async def new_license(request: Request, licensed_by_address: str = Form(...), licensed_to_address: str = Form(...), numprints: str = Form(...),
                       files: UploadFile = File(...), current_user: User = Depends(get_current_active_user), licensed_to_email: str = Form(...)):
     licensed_by_email = current_user.username
-    # parthash = hashlib.md5(files.file.read()).hexdigest()
     parthash = hashlib.sha3_224(files.file.read()).hexdigest()
 
     txn_dict = ethereum.add_license(licensed_to_address, int(numprints), parthash)
@@ -661,7 +676,8 @@ async def new_license(request: Request, licensed_by_address: str = Form(...), li
 @app.post("/new_license_transaction")
 async def new_license_transaction(txn_hash: str = Form(...), numprints: str = Form(...), parthash: str = Form(...),
                                   licensed_by_email: str = Form(...), licensed_to_email: str = Form(...),
-                                  licensed_by_address: str = Form(...), licensed_to_address: str = Form(...)):
+                                  licensed_by_address: str = Form(...), licensed_to_address: str = Form(...),
+                                  current_user: User = Depends(get_current_active_user)):
     transaction_url = 'https://ropsten.etherscan.io/tx/' + txn_hash
     timer = 0
     while timer < 10:
@@ -683,7 +699,6 @@ async def new_license_transaction(txn_hash: str = Form(...), numprints: str = Fo
 
 @app.post("/licenses/{license_id}/new_print/post")
 async def new_print(request: Request, license_id, files: UploadFile = File(...)):
-    # reporthash = hashlib.md5(files.file.read()).hexdigest()
     reporthash = hashlib.sha3_224(files.file.read()).hexdigest()
     ts = time.mktime(datetime.now().timetuple())
     txn_dict = ethereum.add_print(int(license_id), reporthash)
@@ -704,7 +719,7 @@ async def new_print_transaction(txn_hash: str = Form(...), license_id: str = For
 
 
 @app.get("/licenses/{license_id}/prints/{print_id}")
-async def view_print_license_info(request: Request, license_id, print_id):
+async def view_print_license_info(request: Request, license_id, print_id, current_user: User = Depends(get_current_active_user)):
     license = database.get_print(mongo_db, int(license_id), int(print_id))
     return templates.TemplateResponse("printdata.html", {"request": request, "license": license, "license_id": license_id, "print_id": print_id})
 
@@ -725,7 +740,8 @@ async def download_qr(request: Request, license_id, print_id):
 
 
 @app.post("/entries/post")
-async def query_entries(request: Request, query_dict: Optional[str] = Form(None), output_dict: Optional[str] = Form(None)):
+async def query_entries(request: Request, query_dict: Optional[str] = Form(None), output_dict: Optional[str] = Form(None),
+                        current_user: User = Depends(get_current_active_user)):
     try:
         query = json.loads(query_dict)
     except TypeError:
@@ -740,7 +756,7 @@ async def query_entries(request: Request, query_dict: Optional[str] = Form(None)
 
 
 @app.route("/entries/{query}/{output}", methods=["GET", "POST"])
-async def view_entries(request: Request, query, output):
+async def view_entries(request: Request, query, output, current_user: User = Depends(get_current_active_user)):
     try:
         entries_list = database.get_build_entries(mongo_db, json.loads(query), json.loads(output))
     except KeyError:
@@ -754,27 +770,30 @@ async def entries_form(request: Request):
 
 
 @app.get("/graphs/{project_id}/{tree_idx}", response_class=HTMLResponse)
-async def create_graph(request: Request, project_id, tree_idx):
+async def create_graph(request: Request, project_id, tree_idx, current_user: User = Depends(get_current_active_user)):
     ontology.visualize_tree(mongo_db, project_id, int(tree_idx))
     return templates.TemplateResponse("graph.html", {"request": request})
 
 
 @app.post("/outputs/{project_id}")
-async def update_output(project_id, output_uid: str = Form(...), output_type: str = Form(...), output_value: str = Form(...)):
+async def update_output(project_id, output_uid: str = Form(...), output_type: str = Form(...), output_value: str = Form(...),
+                        current_user: User = Depends(get_current_active_user)):
     database.update_entry_output(mongo_db, output_uid, output_type, output_value)
     database.update_tree_output(mongo_db, output_uid, output_type, output_value)
     return RedirectResponse("/projects/" + project_id + "/view")
 
 
 @app.post("/postprocess/{project_id}")
-async def update_postprocessing(project_id, postprocess_uid: str = Form(...), postprocess_type: str = Form(...), postprocess_value: str = Form(...)):
+async def update_postprocessing(project_id, postprocess_uid: str = Form(...), postprocess_type: str = Form(...),
+                                postprocess_value: str = Form(...), current_user: User = Depends(get_current_active_user)):
     database.update_entry_output(mongo_db, postprocess_uid, postprocess_type, postprocess_value)
     database.update_tree_output(mongo_db, postprocess_uid, postprocess_type, postprocess_value)
     return RedirectResponse("/projects/" + project_id + "/view")
 
 
 @app.post("/add_hash_transaction")
-async def add_hash_transaction(txn_hash: str = Form(...), ipfs_hash: str = Form(...), project_id: str = Form(...)):
+async def add_hash_transaction(txn_hash: str = Form(...), ipfs_hash: str = Form(...), project_id: str = Form(...),
+                               current_user: User = Depends(get_current_active_user)):
     transaction_url = 'https://ropsten.etherscan.io/tx/' + txn_hash
     database.add_transaction_to_file(mongo_db, ipfs_hash, transaction_url)
     return RedirectResponse("/projects/"+project_id+"/view")
