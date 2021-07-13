@@ -122,37 +122,14 @@ def update_project_mongo(mongo_db, project_id, metadata, files_dict):
     project_data.update_one({"_id": project_id}, updatequery)
 
 
-
-# def update_project_files(projects_table, project_id, metadata):
-#     existing_info = projects_table.select().where(projects_table.columns.project_id == project_id).execute().fetchone()
-#     if existing_info[3] is not None:
-#         metadata['files'] = [metadata['files'], existing_info[3]]
-#     update_statement = projects_table.update().where(projects_table.columns.project_id == project_id).values(files=metadata['files'],
-#                                                                                                              last_updated=metadata['last_updated']).execute()
-#     print('updated')
-#     return True
-
-
-# def get_projects(projects_table, email):
-#     email = '{' + email + '}'
-#     select_statement = sqlalchemy.select(projects_table).where(projects_table.columns.user_list.contains(email)).execute()
-#     return select_statement.fetchall()
-
-
 def get_projects_mongo(mongo_db, email):
     projects = mongo_db['project-data']
-    res = projects.find({'user_list': email})
+    res = projects.find({'user_list': email, 'active': True})
     project_list = []
     for project in res:
         project_list.append(project)
     print(project_list)
     return project_list
-
-
-# def get_filename(projects_table, ipfs_hash):
-#     select_statement = sqlalchemy.select(projects_table).where(projects_table.columns.ipfs_hash == ipfs_hash).execute()
-#     res = select_statement.fetchone()
-#     return res[3]
 
 
 def get_filename_mongo(mongo_db, ipfs_hash):
@@ -218,7 +195,6 @@ def remove_user(mongo_db, project_id, user):
     project_data.update_one({"_id": project_id}, updatequery)
 
 
-
 def init_project(mongo_db, user, transaction_url):
     project_data = mongo_db['project-data']
     timer = 0
@@ -228,7 +204,7 @@ def init_project(mongo_db, user, transaction_url):
             init_project_id = str(ethereum.get_project_count() - 1)
             try:
                 project_data.insert_one({"_id": init_project_id, "user_list": [user], "transaction_url": transaction_url,
-                     "project_name": "Untitled Project"})
+                                         "project_name": "Untitled Project", "active": True})
                 return init_project_id
             except pymongo.errors.DuplicateKeyError:
                 timer += 1
@@ -242,7 +218,7 @@ def add_license(mongo_db, license_id, transaction_url, num_prints, part_hash, li
     license_data.insert_one({"_id": license_id, "transaction_url": transaction_url, "num_prints": num_prints,
                              "part_hash": part_hash, "licensed_by_email": licensed_by_email, "licensed_to_email": licensed_to_email,
                              "licensed_by_address": licensed_by_address, "licensed_to_address": licensed_to_address,
-                             "prints": []})
+                             "prints": [], "active": True})
 
 
 def add_print(mongo_db, license_id, added_by, report_hash, transaction_url):
@@ -257,11 +233,10 @@ def add_print(mongo_db, license_id, added_by, report_hash, transaction_url):
     license_data.update_one({"_id": license_id}, newprint)
 
 
-
 def get_licenses(mongo_db):
     license_data = mongo_db['license-data']
     license_list = []
-    licenses = license_data.find()
+    licenses = license_data.find({'active': True})
     for license in licenses:
         license_list.append(license)
     return license_list
@@ -351,3 +326,17 @@ def update_tree_output(mongodb, uid, output_type, output_value):
         res = build_tree.find_one({"UID": uid}, {"Part": 1})
         if res:
             res = build_tree.update_one({"UID": uid}, {"$set": {output_type: output_value}})
+
+
+def deactivate_project(mongodb, project_id):
+    project_data = mongodb['project-data']
+    query = {"_id": project_id}
+    newvalues = {"$set": {"active": False}}
+    project_data.update_one(query, newvalues)
+
+
+def deactivate_license(mongodb, license_id):
+    license_data = mongodb['license-data']
+    query = {"_id": license_id}
+    newvalues = {"$set": {"active": False}}
+    license_data.update_one(query, newvalues)

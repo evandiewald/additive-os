@@ -7,15 +7,16 @@ import matplotlib.pyplot as plt
 from pyvis.network import Network
 
 # MongoDB
-mongo_client = pymongo.MongoClient(config.MONGO_CONNECTION_STRING)
-mongo_db = mongo_client.amblockchain
+# mongo_client = pymongo.MongoClient(config.MONGO_CONNECTION_STRING)
+# mongo_db = mongo_client.amblockchain
 
-def visualize_tree(mongodb, project_id, tree_idx):
+
+def visualize_tree(mongo_db, project_id, tree_idx):
     trees = database.get_build_trees(mongo_db, project_id)
 
     uid = trees[tree_idx]
 
-    tree = database.get_tree_by_uid(mongodb, uid['_id'])
+    tree = database.get_tree_by_uid(mongo_db, uid['_id'])
 
     net = Network(width="100%", height="75%")
 
