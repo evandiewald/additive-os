@@ -31,8 +31,8 @@ The core technologies are:
 COMING SOON
 
 ## Additional Resources
-**Whitepaper**: COMING SOON
+**[Whitepaper](http://utw10945.utweb.utexas.edu/sites/default/files/2021/024%20Additive%20OS_%20An%20Open-Source%20Platform%20for%20Additive%20.pdf)**
 
-**Overview Presentation (SFF 2021)**: https://youtu.be/q0A4kLxgCqE
+**[Overview Presentation](https://youtu.be/q0A4kLxgCqE) (SFF 2021)**
 
-**Usage Demo**: https://youtu.be/joYuvgcZNo4
+**[Usage Demo](https://youtu.be/joYuvgcZNo4)**
